@@ -1,0 +1,14 @@
+node_modules/
+dist/
+site/
+artifacts/
+playwright-report/
+test-results/
+*.tgz
+.DS_Store
+.env
+.env.*
+!.env.example
+
+dotnet/bin/
+dotnet/obj/

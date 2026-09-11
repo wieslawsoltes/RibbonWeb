@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RibbonWeb.Blazor</RootNamespace>
+    <AssemblyName>RibbonWeb.Blazor</AssemblyName>
+    <PackageId>RibbonWeb.Blazor</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>RibbonWeb contributors</Authors>
+    <Description>A Blazor component and .NET command bridge for the standalone RibbonWeb web component.</Description>
+    <PackageTags>blazor;ribbon;web-components;mvvm;ICommand</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/wieslawsoltes/RibbonWeb</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/wieslawsoltes/RibbonWeb</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" PrivateAssets="all" />
+    <None Update="README.md" Pack="true" PackagePath="/" />
+    <!-- Keep a single JavaScript source tree. The Razor SDK packages linked
+         wwwroot files as static web assets under _content/RibbonWeb.Blazor/. -->
+    <Content Include="../src/*.js"
+             Link="wwwroot/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="ValidateRibbonJavaScriptSources" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('../src/index.js')" Text="RibbonWeb JavaScript sources are missing. Build this project from the repository's dotnet directory beside ../src/." />
+    <Error Condition="!Exists('../src/ribbon.js') Or !Exists('../src/dotnet.js')" Text="RibbonWeb requires both ../src/ribbon.js and ../src/dotnet.js static web assets." />
+  </Target>
+</Project>

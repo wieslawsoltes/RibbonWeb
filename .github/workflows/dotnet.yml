@@ -1,0 +1,74 @@
+name: .NET package CI
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dotnet-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore Razor class library
+        run: dotnet restore dotnet/RibbonWeb.Blazor.csproj
+      - name: Validate release tag version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RIBBON_RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          RIBBON_PACKAGE_VERSION=$(dotnet msbuild dotnet/RibbonWeb.Blazor.csproj -getProperty:Version)
+          test "$RIBBON_RELEASE_TAG" = "v$RIBBON_PACKAGE_VERSION"
+      - name: Build C# and Razor components
+        run: dotnet build dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-restore
+      - name: Pack NuGet library and symbols
+        run: dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore --output artifacts/dotnet
+      - name: Verify assembly and JavaScript static web assets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          packages = list(Path('artifacts/dotnet').glob('*.nupkg'))
+          assert len(packages) == 1, f'Expected one package, found {len(packages)}'
+          with ZipFile(packages[0]) as package:
+              names = set(package.namelist())
+              assert 'lib/net8.0/RibbonWeb.Blazor.dll' in names, 'Compiled library missing'
+              for source in Path('src').glob('*.js'):
+                  matches = [name for name in names if name.startswith('staticwebassets/') and name.endswith('/' + source.name)]
+                  assert len(matches) == 1, f'Static web asset missing or duplicated: {source.name}'
+                  assert package.read(matches[0]) == source.read_bytes(), f'Stale static web asset: {source.name}'
+              assert 'README.md' in names, 'Package README missing'
+          print('NuGet assembly, README, and all JavaScript assets verified.')
+          PY
+      - name: Verify packed library in a Blazor WebAssembly host
+        run: |
+          RIBBON_SMOKE_DIR="$RUNNER_TEMP/ribbonweb-blazor-smoke"
+          RIBBON_PACKAGE_VERSION=$(dotnet msbuild dotnet/RibbonWeb.Blazor.csproj -getProperty:Version)
+          dotnet new blazorwasm --framework net8.0 --no-restore --output "$RIBBON_SMOKE_DIR"
+          dotnet add "$RIBBON_SMOKE_DIR" package RibbonWeb.Blazor --version "$RIBBON_PACKAGE_VERSION" --no-restore
+          cat > "$RIBBON_SMOKE_DIR/Pages/Home.razor" <<'RAZOR'
+          @page "/"
+          @using global::RibbonWeb.Blazor
+          <RibbonWeb Model="_model" theme="light" />
+          @code {
+              private readonly object _model = new { tabs = Array.Empty<object>() };
+          }
+          RAZOR
+          dotnet restore "$RIBBON_SMOKE_DIR" --source "$PWD/artifacts/dotnet" --source https://api.nuget.org/v3/index.json
+          dotnet publish "$RIBBON_SMOKE_DIR" --configuration Release --no-restore --output "$RUNNER_TEMP/ribbonweb-blazor-publish"
+          test -f "$RUNNER_TEMP/ribbonweb-blazor-publish/wwwroot/_content/RibbonWeb.Blazor/index.js"
+          test -f "$RUNNER_TEMP/ribbonweb-blazor-publish/wwwroot/_content/RibbonWeb.Blazor/ribbon.js"
+          test -f "$RUNNER_TEMP/ribbonweb-blazor-publish/wwwroot/_content/RibbonWeb.Blazor/dotnet.js"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ribbonweb-blazor-nuget
+          path: artifacts/dotnet/*
+          if-no-files-found: error

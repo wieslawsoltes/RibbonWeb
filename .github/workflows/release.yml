@@ -1,0 +1,113 @@
+name: Release library
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version already committed in package.json and package-lock.json (e.g. 0.1.0)
+        required: true
+        type: string
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+concurrency:
+  group: release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate package and tag versions
+        id: version
+        run: npm run release:validate
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run release:pack
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build and pack Blazor library
+        run: |
+          dotnet restore dotnet/RibbonWeb.Blazor.csproj
+          dotnet build dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-restore
+          dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore --output artifacts
+          node scripts/checksums.mjs
+      - name: Publish GitHub release and attach archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          IS_PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          flags=()
+          if [ "$IS_PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" artifacts/* --clobber
+          else
+            gh release create "$RELEASE_TAG" artifacts/* --target "$GITHUB_SHA" --title "RibbonWeb $RELEASE_TAG" --notes-file CHANGELOG.md "${flags[@]}"
+          fi
+      - name: Configure npm registry
+        if: env.NPM_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Publish to npm when NPM_TOKEN is configured
+        if: env.NPM_TOKEN != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          IS_PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          tag=latest
+          if [ "$IS_PRERELEASE" = "true" ]; then tag=next; fi
+          npm publish artifacts/*.tgz --access public --provenance --tag "$tag"
+      - name: Configure GitHub Packages registry
+        if: vars.PUBLISH_GITHUB_PACKAGES == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@wieslawsoltes'
+      - name: Publish to GitHub Packages when enabled
+        if: vars.PUBLISH_GITHUB_PACKAGES == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          IS_PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          tag=latest
+          if [ "$IS_PRERELEASE" = "true" ]; then tag=next; fi
+          npm publish artifacts/*.tgz --registry https://npm.pkg.github.com --tag "$tag"
+      - name: Publish Blazor package when configured
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -n "$NUGET_API_KEY" ]; then
+            dotnet nuget push 'artifacts/*.nupkg' --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+          else
+            echo "NuGet.org publishing skipped: NUGET_API_KEY is not configured."
+          fi
+      - name: Record distribution results
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          NPM_ENABLED: ${{ env.NPM_TOKEN != '' }}
+          GH_PACKAGES_ENABLED: ${{ vars.PUBLISH_GITHUB_PACKAGES == 'true' }}
+        run: |
+          {
+            echo "Release: $RELEASE_TAG"
+            echo "GitHub release archives: published"
+            echo "npm publishing enabled: $NPM_ENABLED"
+            echo "GitHub Packages publishing enabled: $GH_PACKAGES_ENABLED"
+          } >> "$GITHUB_STEP_SUMMARY"

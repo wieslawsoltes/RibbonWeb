@@ -1,0 +1,123 @@
+@namespace RibbonWeb.Blazor
+@using System
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using System.Windows.Input
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@using global::RibbonWeb
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<ribbon-web @ref="_element" @attributes="AdditionalAttributes" aria-label="@AriaLabel"></ribbon-web>
+
+@code {
+    [Parameter, EditorRequired] public object Model { get; set; } = default!;
+    [Parameter] public long ModelVersion { get; set; }
+    [Parameter] public string ModuleUrl { get; set; } = RibbonWebInterop.DefaultModuleUrl;
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+    [Parameter] public string AriaLabel { get; set; } = "Application commands";
+    [Parameter] public EventCallback<RibbonEventArgs> Command { get; set; }
+    [Parameter] public EventCallback<RibbonEventArgs> Change { get; set; }
+    [Parameter] public EventCallback<RibbonEventArgs> SelectedTabChanged { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, ICommand>? Commands { get; set; }
+    [Parameter] public Func<RibbonEventArgs, object?>? CommandParameter { get; set; }
+
+    private ElementReference _element;
+    private DotNetObjectReference<global::RibbonWeb.Blazor.RibbonWeb>? _reference;
+    private RibbonWebInterop? _interop;
+    private readonly List<ICommand> _subscriptions = new();
+    private bool _disposed;
+    private object? _lastModel;
+    private long _lastModelVersion = long.MinValue;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed) return;
+        if (firstRender)
+        {
+            _reference = DotNetObjectReference.Create(this);
+            _interop = await RibbonWebInterop.ConnectAsync(JS, _element, _reference, ModuleUrl);
+        }
+        if (_interop is null) return;
+        if (!ReferenceEquals(Model, _lastModel) || ModelVersion != _lastModelVersion)
+        {
+            await _interop.SetModelAsync(Model);
+            _lastModel = Model;
+            _lastModelVersion = ModelVersion;
+        }
+        RefreshCommandSubscriptions();
+        await RefreshCanExecuteAsync();
+    }
+
+    private void RefreshCommandSubscriptions()
+    {
+        foreach (var command in _subscriptions) command.CanExecuteChanged -= OnCanExecuteChanged;
+        _subscriptions.Clear();
+        if (Commands is null) return;
+        foreach (var command in Commands.Values)
+        {
+            if (_subscriptions.Contains(command)) continue;
+            command.CanExecuteChanged += OnCanExecuteChanged;
+            _subscriptions.Add(command);
+        }
+    }
+
+    private async void OnCanExecuteChanged(object? sender, EventArgs args)
+    {
+        // ICommand has a void event signature. Marshal updates onto the component context.
+        try { await InvokeAsync(RefreshCanExecuteAsync); }
+        catch (JSDisconnectedException) { }
+        catch (ObjectDisposedException) when (_disposed) { }
+    }
+
+    private async Task RefreshCanExecuteAsync()
+    {
+        if (_disposed || _interop is null || Commands is null) return;
+        foreach (var pair in Commands)
+        {
+            var args = new RibbonEventArgs { Type = "ribbon-command", Id = pair.Key };
+            var parameter = CommandParameter?.Invoke(args);
+            await _interop.UpdateControlAsync(pair.Key, new { enabled = pair.Value.CanExecute(parameter) });
+        }
+    }
+
+    [JSInvokable("OnRibbonEvent")]
+    public async Task ReceiveRibbonEvent(RibbonEventArgs args)
+    {
+        if (_disposed) return;
+        switch (args.Type)
+        {
+            case "ribbon-command":
+                if (Commands is not null && Commands.TryGetValue(args.Id, out var command))
+                {
+                    object? parameter = CommandParameter is null ? args.Parameter : CommandParameter(args);
+                    if (command.CanExecute(parameter)) command.Execute(parameter);
+                }
+                await Command.InvokeAsync(args);
+                break;
+            case "ribbon-change":
+                await Change.InvokeAsync(args);
+                break;
+            case "ribbon-tab-change":
+                await SelectedTabChanged.InvokeAsync(args);
+                break;
+        }
+    }
+
+    public ValueTask UpdateControlAsync(string id, object changes) =>
+        _interop is null ? ValueTask.CompletedTask : _interop.UpdateControlAsync(id, changes);
+    public ValueTask SetContextAsync(string name, bool active) =>
+        _interop is null ? ValueTask.CompletedTask : _interop.SetContextAsync(name, active);
+    public ValueTask SelectTabAsync(string id) =>
+        _interop is null ? ValueTask.CompletedTask : _interop.SelectTabAsync(id);
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        foreach (var command in _subscriptions) command.CanExecuteChanged -= OnCanExecuteChanged;
+        _subscriptions.Clear();
+        if (_interop is not null) await _interop.DisposeAsync();
+        _reference?.Dispose();
+    }
+}

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RibbonX migration · RibbonWeb</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px/1.55 system-ui,sans-serif;background:#f3f5f9;color:#192438}header{background:#152a48;color:white;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px}header a{color:#c9dfff}header strong{display:block;font-size:19px}header span{font-size:12px;color:#b5c9e4}nav{display:flex;gap:20px}ribbon-web{display:block;background:white;border-bottom:1px solid #dce2ec}.content{max-width:1280px;margin:28px auto;padding:0 24px;display:grid;grid-template-columns:1fr 1.2fr;gap:24px}.card{background:white;border:1px solid #dce2ec;border-radius:14px;padding:24px;box-shadow:0 3px 12px #172b4810}.eyebrow{font-size:11px;letter-spacing:1.4px;font-weight:700;text-transform:uppercase;color:#376ac9}h1{font-size:26px;line-height:1.2;margin:8px 0 14px}h2{font-size:17px;margin:0 0 14px}p{color:#53647a}button{font:inherit;cursor:pointer;background:#eef3fb;border:1px solid #ccd8e8;border-radius:7px;padding:8px 12px;color:#173c75}button:hover{background:#e1ebfb}button.primary{background:#245bc5;color:white;border-color:#245bc5}button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #78a8f8;outline-offset:2px}.controls{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.paper{margin:20px 0;padding:28px;border:1px solid #e0e5ed;border-radius:4px;min-height:160px;background:#fffefc;box-shadow:0 5px 14px #152a480d}.paper p{color:#23334a}.status{font-size:12px;font-weight:600;display:inline-block;padding:4px 10px;border-radius:20px;background:#eef3fb;color:#375786}pre,textarea{padding:16px;border-radius:9px;background:#132238;color:#d7e6fa;font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}textarea{width:100%;resize:vertical;border:1px solid #30445f;min-height:360px;white-space:pre;tab-size:2}code{font-family:ui-monospace,monospace}.hint{font-size:12px}.wide{grid-column:1/-1}.check{display:flex;align-items:center;gap:8px;font-size:13px}.log{padding-left:18px;margin:0}.log li{padding:5px 0;font-size:12px;color:#53647a}.warning{color:#88551f}#error{color:#b82c35}.code-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}@media(max-width:850px){.content,.code-grid{grid-template-columns:1fr}header{padding:16px 20px;align-items:flex-start}nav{flex-direction:column;gap:4px}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><div><strong>RibbonWeb <span>/ integration examples</span></strong><span>Import public RibbonX customization concepts into a web component</span></div><nav><a href="../index.html">Showcase</a><a href="./mvvm.html">MVVM example →</a></nav></header>
+<ribbon-web id="ribbon" aria-label="Imported RibbonX ribbon"></ribbon-web>
+<main class="content">
+<section class="card"><div class="eyebrow">XML callbacks · web state</div><h1>A migration path for your ribbon.</h1><p>The ribbon above is created from the XML on this page. Buttons call explicitly registered functions; invalidation refreshes their labels, selection, and enabled state.</p>
+<label class="check"><input id="enabled" type="checkbox" checked> Enable formatting commands</label>
+<div class="controls"><button id="refresh" type="button">Invalidate all callbacks</button><button id="add-recent" type="button">Add a recent document</button><button id="view-tab" type="button">Activate View tab</button></div>
+<div class="paper"><div class="eyebrow">Live document preview</div><h2 id="preview-title">Imported ribbon, native web UI</h2><p id="preview">Use Bold, Font, or Style in the ribbon. Recent documents are supplied as dynamic menu XML.</p></div>
+<output class="status" id="status" aria-live="polite">Ready</output><h2 style="margin-top:24px">Callback activity</h2><ol class="log" id="event-log" aria-live="polite"></ol><h2 style="margin-top:24px">Import warnings</h2><div id="warnings" class="hint">None.</div>
+</section>
+<section class="card"><h2>RibbonX source</h2><p class="hint">Edit labels or add a control using one of the callbacks below, then apply the XML. Callback expressions are never evaluated.</p><label for="xml" class="hint">Customization XML</label><textarea id="xml" spellcheck="false"></textarea><div class="controls"><button id="apply" class="primary" type="button">Apply XML</button><button id="restore" type="button">Restore example</button></div><p id="error" role="alert"></p></section>
+<section class="card wide"><div class="code-grid"><div><h2>Attach the adapter</h2><pre>import { createRibbonXAdapter } from '../src/index.js';
+
+const adapter = createRibbonXAdapter(xml, {
+  getBold: () =&gt; documentState.bold,
+  setBold(control, pressed) {
+    documentState.bold = pressed;
+    adapter.InvalidateControl(control.id);
+  }
+});
+
+adapter.attach(document.querySelector('ribbon-web'));
+adapter.Invalidate();
+adapter.ActivateTab('view');
+// Dispose when the application view is destroyed.
+adapter.dispose();</pre></div><div><h2>Supported migration behavior</h2><p class="hint">This example exercises QAT, tabs/groups, toggle and selection callbacks, editable text, gallery items, split buttons, dynamic menu XML, and invalidation. The importer also supports contextual tabs and common state getters.</p><p class="hint">This is an independent implementation of documented customization concepts. Office's built-in commands and images, COM objects, document engines, and rich Backstage form layouts are not bundled. Unsupported import cases are reported explicitly through <code>adapter.warnings</code>.</p><h2>Available callback names</h2><p class="hint"><code>loaded</code>, <code>isEnabled</code>, <code>getBold</code>, <code>setBold</code>, <code>fontCount</code>, <code>fontId</code>, <code>fontLabel</code>, <code>selectedFont</code>, <code>setFont</code>, <code>getTitle</code>, <code>setTitle</code>, <code>selectedStyle</code>, <code>setStyle</code>, <code>recentContent</code>, <code>openRecent</code>, <code>exportState</code>, <code>resetFormatting</code>, and <code>refreshState</code>.</p></div></div></section>
+</main>
+<script type="module">
+import { createRibbonXAdapter } from '../src/index.js';
+const initialXml = `<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="loaded">
+  <ribbon>
+    <qat><sharedControls>
+      <button id="quick-export" label="Export state" image="download" onAction="exportState" />
+    </sharedControls></qat>
+    <tabs>
+      <tab id="home" label="Home" keytip="H">
+        <group id="formatting" label="Formatting">
+          <toggleButton id="bold" label="Bold" image="bold" keytip="B"
+            getEnabled="isEnabled" getPressed="getBold" onAction="setBold" />
+          <dropDown id="font" label="Font" keytip="F"
+            getEnabled="isEnabled" getItemCount="fontCount"
+            getItemID="fontId" getItemLabel="fontLabel"
+            getSelectedItemID="selectedFont" onAction="setFont" />
+          <editBox id="title" label="Title" getText="getTitle"
+            getEnabled="isEnabled" onChange="setTitle" />
+        </group>
+        <group id="styles" label="Styles">
+          <gallery id="style" label="Style" columns="3" getEnabled="isEnabled" getSelectedItemID="selectedStyle" onAction="setStyle">
+            <item id="normal" label="Normal" />
+            <item id="heading" label="Heading" />
+            <item id="emphasis" label="Emphasis" />
+          </gallery>
+        </group>
+        <group id="documents" label="Document">
+          <dynamicMenu id="recent" label="Recent" image="clock" getContent="recentContent" />
+          <splitButton id="export">
+            <button id="export-primary" label="Export state" image="download" onAction="exportState" />
+            <menu id="export-menu">
+              <button id="export-json" label="Download JSON" onAction="exportState" />
+              <button id="reset" label="Reset formatting" onAction="resetFormatting" />
+            </menu>
+          </splitButton>
+        </group>
+      </tab>
+      <tab id="view" label="View" keytip="W">
+        <group id="state" label="State">
+          <button id="refresh-state" label="Refresh state" image="redo" size="large" onAction="refreshState" />
+          <labelControl id="state-note" label="Callback-driven web controls" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>`;
+const xmlInput = document.querySelector('#xml');
+const ribbon = document.querySelector('#ribbon');
+const state = { enabled: true, bold: false, font: 'system', style: 'normal', title: 'Imported ribbon, native web UI' };
+const fonts = [{ id: 'system', label: 'System UI', css: 'system-ui, sans-serif' }, { id: 'serif', label: 'Serif', css: 'Georgia, serif' }, { id: 'mono', label: 'Monospace', css: 'ui-monospace, monospace' }];
+const recent = ['Project brief', 'Quarterly report'];
+let adapter;
+let ui;
+function log(message) {
+  const item = document.createElement('li'); item.textContent = message;
+  const list = document.querySelector('#event-log'); list.prepend(item);
+  while (list.children.length > 7) list.lastChild.remove();
+  document.querySelector('#status').textContent = message;
+}
+function preview() {
+  const text = document.querySelector('#preview');
+  text.style.fontWeight = state.bold || state.style === 'heading' ? '700' : '400';
+  text.style.fontStyle = state.style === 'emphasis' ? 'italic' : 'normal';
+  text.style.fontSize = state.style === 'heading' ? '21px' : '16px';
+  text.style.fontFamily = fonts.find(font => font.id === state.font)?.css || fonts[0].css;
+  document.querySelector('#preview-title').textContent = state.title;
+}
+const escapeXml = text => String(text).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char]));
+const callbacks = {
+  loaded(value) { ui = value; },
+  isEnabled() { return state.enabled; },
+  getBold() { return state.bold; },
+  setBold(control, pressed) { state.bold = pressed; preview(); log(`${control.id}: pressed = ${pressed}`); ui.InvalidateControl(control.id); },
+  fontCount() { return fonts.length; },
+  fontId(control, index) { return fonts[index].id; },
+  fontLabel(control, index) { return fonts[index].label; },
+  selectedFont() { return state.font; },
+  setFont(control, id, index) { state.font = id; preview(); log(`${control.id}: ${id} (index ${index})`); },
+  getTitle() { return state.title; },
+  setTitle(control, text) { state.title = text; preview(); log(`${control.id}: text changed`); },
+  selectedStyle() { return state.style; },
+  setStyle(control, id) { state.style = id; preview(); log(`${control.id}: ${id}`); },
+  recentContent() { return `<menu xmlns="http://schemas.microsoft.com/office/2009/07/customui">${recent.map((label, index) => `<button id="recent-${index}" label="${escapeXml(label)}" onAction="openRecent" />`).join('')}</menu>`; },
+  openRecent(control) { state.title = recent[Number(control.id.replace('recent-', ''))]; preview(); ui.InvalidateControl('title'); log(`Opened ${state.title}`); },
+  exportState() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob); const link = document.createElement('a');
+    link.href = url; link.download = 'ribbonx-document-state.json'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000); log('Downloaded document state as JSON');
+  },
+  resetFormatting() { state.bold = false; state.font = 'system'; state.style = 'normal'; preview(); ui.Invalidate(); log('Formatting reset'); },
+  refreshState() { ui.Invalidate(); log('All callback values refreshed'); }
+};
+function showWarnings() {
+  const container = document.querySelector('#warnings'); container.replaceChildren();
+  if (!adapter.warnings.length) { container.textContent = 'No import warnings.'; return; }
+  const list = document.createElement('ul');
+  for (const warning of adapter.warnings) { const li = document.createElement('li'); li.className = 'warning'; li.textContent = `${warning.code}: ${warning.message}`; list.append(li); }
+  container.append(list);
+}
+function apply() {
+  document.querySelector('#error').textContent = '';
+  try {
+    const next = createRibbonXAdapter(xmlInput.value, callbacks, { resolveImage: name => name });
+    adapter?.dispose(); adapter = next; adapter.attach(ribbon);
+    preview(); showWarnings(); log('RibbonX imported successfully');
+  } catch (error) { document.querySelector('#error').textContent = error.message; }
+}
+xmlInput.value = initialXml;
+document.querySelector('#apply').addEventListener('click', apply);
+document.querySelector('#restore').addEventListener('click', () => { xmlInput.value = initialXml; apply(); });
+document.querySelector('#enabled').addEventListener('change', event => { state.enabled = event.target.checked; adapter.Invalidate(); log(`Formatting ${state.enabled ? 'enabled' : 'disabled'}`); });
+document.querySelector('#refresh').addEventListener('click', () => { adapter.Invalidate(); showWarnings(); log('All callback values refreshed'); });
+document.querySelector('#add-recent').addEventListener('click', () => { recent.push(`Draft ${recent.length + 1}`); adapter.InvalidateControl('recent'); log('Recent menu updated; open Recent in the ribbon'); });
+document.querySelector('#view-tab').addEventListener('click', () => adapter.ActivateTab('view'));
+window.addEventListener('pagehide', () => adapter?.dispose(), { once: true });
+apply();
+</script>
+</body></html>
