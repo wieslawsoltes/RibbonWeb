@@ -4,25 +4,25 @@ RibbonWeb is an independent web implementation informed by public ribbon documen
 
 ## Implemented library surfaces
 
-| Surface | Included behavior | Scope and limits |
-| --- | --- | --- |
-| Tabs and groups | Ordered groups, visibility, contextual sets, selected tab, group launcher | Context is supplied by the host; native document selection is not inferred |
-| Adaptive layout | Classic and simplified layouts, minimized panel, priority-based group overflow | No WPF measure/arrange engine or exact Office group-size algorithm |
-| Actions | Button, toggle, check, radio, split, menu, nested menu, dynamic provider | Application owns action semantics and command data |
-| Inputs | Text, editable combo, dropdown, numeric spinner, slider, color | Native browser popup/input behavior differs by platform; no full native Office font picker |
-| Galleries | Inline items, popup grid, categories, selected value, preview/end events and item styles | Eager rendering; no virtualized thousands-item gallery or arbitrary WPF DataTemplate engine |
-| Custom content | DOM renderer callback and named slots | Caller owns safety, focus behavior and cleanup of its custom nodes |
-| Quick access | Shared commands, command chooser and stored selection | Application controls initial command list |
-| Backstage | Navigation, command items, content callbacks and slots | Rich RibbonX backstage schema translation is incomplete |
-| Context surfaces | Application-opened context menu and mini toolbar | Not automatic integration into external editors |
-| Keyboard | Alt/F10 key tips, Alt+Q search, command shortcuts, tab/menu/control arrows, Home/End, Escape | Browser/OS-reserved shortcuts can take precedence; assistive-technology certification not claimed |
-| Appearance | Light, dark, system, touch density, RTL, CSS tokens/parts, forced-colors rules | Original icons and styling; no proprietary Office assets or pixel-exact theme guarantee |
-| Personalization | Tab/group visibility and order, tab labels, quick-access choices, import/export, local persistence | Saved schema version 1; does not consume native Office customization files |
-| MVVM | Observable properties/collections, nested binding, converters, notifications, command gating, async cancellation | No CLR, dependency-property system, routed-event system, XAML engine or complete WPF binding language |
-| Web usage | Native custom element, JSON/object models, DOM events, TypeScript | Framework examples use native integration rather than separate framework component implementations |
-| .NET usage | JS bridge, ICommand routing, Blazor wrapper source and build project | Browser runtime remains JavaScript; arbitrary .NET UI binaries are not loaded |
-| RibbonX | Common controls/callbacks, dynamic content, invalidation, contextual tabs | See [the detailed importer mapping](interop.md); unsupported features report warnings |
-| Office.js | Comparable ribbon command patterns | No `Office` global or Office.js host implementation |
+| Surface          | Included behavior                                                                                                | Scope and limits                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Tabs and groups  | Ordered groups, visibility, contextual sets, selected tab, group launcher                                        | Context is supplied by the host; native document selection is not inferred                            |
+| Adaptive layout  | Classic and simplified layouts, minimized panel, priority-based group overflow                                   | No WPF measure/arrange engine or exact Office group-size algorithm                                    |
+| Actions          | Button, toggle, check, radio, split, menu, nested menu, dynamic provider                                         | Application owns action semantics and command data                                                    |
+| Inputs           | Text, editable combo, dropdown, numeric spinner, slider, color                                                   | Native browser popup/input behavior differs by platform; no full native Office font picker            |
+| Galleries        | Inline items, popup grid, categories, selected value, preview/end events and item styles                         | Eager rendering; no virtualized thousands-item gallery or arbitrary WPF DataTemplate engine           |
+| Custom content   | DOM renderer callback and named slots                                                                            | Caller owns safety, focus behavior and cleanup of its custom nodes                                    |
+| Quick access     | Shared commands, command chooser and stored selection                                                            | Application controls initial command list                                                             |
+| Backstage        | Navigation, command items, content callbacks and slots                                                           | Rich RibbonX backstage schema translation is incomplete                                               |
+| Context surfaces | Application-opened context menu and mini toolbar                                                                 | Not automatic integration into external editors                                                       |
+| Keyboard         | Alt/F10 key tips, Alt+Q search, command shortcuts, tab/menu/control arrows, Home/End, Escape                     | Browser/OS-reserved shortcuts can take precedence; assistive-technology certification not claimed     |
+| Appearance       | Light, dark, system, touch density, RTL, CSS tokens/parts, forced-colors rules                                   | Original icons and styling; no proprietary Office assets or pixel-exact theme guarantee               |
+| Personalization  | Tab/group visibility and order, tab labels, quick-access choices, import/export, local persistence               | Saved schema version 1; does not consume native Office customization files                            |
+| MVVM             | Observable properties/collections, nested binding, converters, notifications, command gating, async cancellation | No CLR, dependency-property system, routed-event system, XAML engine or complete WPF binding language |
+| Web usage        | Native custom element, JSON/object models, DOM events, TypeScript                                                | Framework examples use native integration rather than separate framework component implementations    |
+| .NET usage       | JS bridge, ICommand routing, Blazor wrapper source and build project                                             | Browser runtime remains JavaScript; arbitrary .NET UI binaries are not loaded                         |
+| RibbonX          | Common controls/callbacks, dynamic content, invalidation, contextual tabs                                        | See [the detailed importer mapping](interop.md); unsupported features report warnings                 |
+| Office.js        | Comparable ribbon command patterns                                                                               | No `Office` global or Office.js host implementation                                                   |
 
 ## Explicit remaining compatibility boundaries
 

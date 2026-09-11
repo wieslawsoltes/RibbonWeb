@@ -16,11 +16,14 @@ async function serverFixture(t) {
   await writeFile(join(root, '.env'), 'SHOULD_NOT_BE_SERVED');
   await writeFile(join(folder, 'outside.txt'), 'SHOULD_NOT_BE_SERVED');
   const server = await createStaticServer({ root, port: 0 });
-  t.after(async () => { await new Promise(resolve => server.close(resolve)); await rm(folder, { recursive: true, force: true }); });
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await rm(folder, { recursive: true, force: true });
+  });
   return { folder, root, base: `http://127.0.0.1:${server.address().port}` };
 }
 
-test('static server serves native modules and preserves HEAD metadata', async t => {
+test('static server serves native modules and preserves HEAD metadata', async (t) => {
   const { base } = await serverFixture(t);
   const response = await fetch(`${base}/component.js`);
   assert.equal(response.status, 200);
@@ -34,7 +37,7 @@ test('static server serves native modules and preserves HEAD metadata', async t 
   assert.equal(await head.text(), '');
 });
 
-test('static server routes the showcase and rejects unsupported methods', async t => {
+test('static server routes the showcase and rejects unsupported methods', async (t) => {
   const { base } = await serverFixture(t);
   const response = await fetch(`${base}/`, { redirect: 'manual' });
   assert.equal(response.status, 302);
@@ -47,7 +50,7 @@ test('static server routes the showcase and rejects unsupported methods', async 
   assert.equal(post.headers.get('allow'), 'GET, HEAD');
 });
 
-test('static server rejects hidden paths, malformed encoding and traversal', async t => {
+test('static server rejects hidden paths, malformed encoding and traversal', async (t) => {
   const { base } = await serverFixture(t);
   for (const path of ['/.env', '/%2eenv', '/%2e%2e%2foutside.txt', '/..%5coutside.txt', '/%00']) {
     const response = await fetch(`${base}${path}`);
@@ -57,10 +60,17 @@ test('static server rejects hidden paths, malformed encoding and traversal', asy
   assert.equal((await fetch(`${base}/%zz`)).status, 400);
 });
 
-test('static server rejects symlink targets outside the public root', async t => {
+test('static server rejects symlink targets outside the public root', async (t) => {
   const { base, root, folder } = await serverFixture(t);
-  try { await symlink(join(folder, 'outside.txt'), join(root, 'linked.txt')); }
-  catch (error) { if (error.code === 'EPERM') { t.skip('Creating symlinks requires local permission'); return; } throw error; }
+  try {
+    await symlink(join(folder, 'outside.txt'), join(root, 'linked.txt'));
+  } catch (error) {
+    if (error.code === 'EPERM') {
+      t.skip('Creating symlinks requires local permission');
+      return;
+    }
+    throw error;
+  }
   const response = await fetch(`${base}/linked.txt`);
   assert.equal(response.status, 403);
   assert.doesNotMatch(await response.text(), /SHOULD_NOT_BE_SERVED/);
@@ -68,18 +78,32 @@ test('static server rejects symlink targets outside the public root', async t =>
 
 test('release ZIP is deterministic, UTF-8 encoded and contains deflatable payloads', () => {
   const payload = Buffer.from('export const label = "Ribbon";\n');
-  const files = [{ name: 'dist/组件.js', data: payload }, { name: 'LICENSE', data: Buffer.from('MIT') }];
+  const files = [
+    { name: 'dist/组件.js', data: payload },
+    { name: 'LICENSE', data: Buffer.from('MIT') },
+  ];
   const first = createZip(files);
   assert.deepEqual(first, createZip(files));
   assert.equal(first.readUInt32LE(0), 0x04034b50);
   assert.equal(first.readUInt16LE(6), 0x0800);
   const nameSize = first.readUInt16LE(26);
   assert.equal(first.subarray(30, 30 + nameSize).toString('utf8'), 'dist/组件.js');
-  assert.deepEqual(inflateRawSync(first.subarray(30 + nameSize, 30 + nameSize + first.readUInt32LE(18))), payload);
+  assert.deepEqual(
+    inflateRawSync(first.subarray(30 + nameSize, 30 + nameSize + first.readUInt32LE(18))),
+    payload,
+  );
   assert.equal(first.readUInt32LE(first.length - 22), 0x06054b50);
   assert.equal(first.readUInt16LE(first.length - 12), files.length);
 });
 
 test('release ZIP rejects archive paths that can escape extraction', () => {
-  for (const name of ['', '/absolute.js', '../outside.js', 'dist/../../outside.js', 'C:/outside.js', '..\\outside.js']) assert.throws(() => createZip([{ name, data: Buffer.from('x') }]), /Unsafe archive path/);
+  for (const name of [
+    '',
+    '/absolute.js',
+    '../outside.js',
+    'dist/../../outside.js',
+    'C:/outside.js',
+    '..\\outside.js',
+  ])
+    assert.throws(() => createZip([{ name, data: Buffer.from('x') }]), /Unsafe archive path/);
 });

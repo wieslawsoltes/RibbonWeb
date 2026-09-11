@@ -47,24 +47,39 @@ Registry publishing is configured but depends on repository credentials. Only us
 
   const ribbon = document.querySelector('#commands');
   ribbon.model = {
-    tabs: [{
-      id: 'home', header: 'Home', keyTip: 'H',
-      groups: [{
-        id: 'document', header: 'Document',
-        items: [{
-          id: 'save', type: 'button', label: 'Save', icon: 'save',
-          size: 'large', keyTip: 'S',
-          command: () => saveDocument()
-        }]
-      }]
-    }]
+    tabs: [
+      {
+        id: 'home',
+        header: 'Home',
+        keyTip: 'H',
+        groups: [
+          {
+            id: 'document',
+            header: 'Document',
+            items: [
+              {
+                id: 'save',
+                type: 'button',
+                label: 'Save',
+                icon: 'save',
+                size: 'large',
+                keyTip: 'S',
+                command: () => saveDocument(),
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
-  ribbon.addEventListener('ribbon-command', event => {
+  ribbon.addEventListener('ribbon-command', (event) => {
     console.log(event.detail.id, event.detail.value);
   });
 
-  function saveDocument() { /* persist application data here */ }
+  function saveDocument() {
+    /* persist application data here */
+  }
 </script>
 ```
 
@@ -86,29 +101,47 @@ The element reads declarative definitions when first connected. Handle the bubbl
 
 ```js
 import {
-  ObservableObject, RelayCommand, RibbonModel,
-  RibbonTab, RibbonGroup, RibbonToggleButton, RibbonButton
+  ObservableObject,
+  RelayCommand,
+  RibbonModel,
+  RibbonTab,
+  RibbonGroup,
+  RibbonToggleButton,
+  RibbonButton,
 } from '@wieslawsoltes/ribbon-web';
 
 const vm = new ObservableObject({ Bold: false, CanSave: true });
-const save = new RelayCommand(() => persistDocument(), () => vm.CanSave);
+const save = new RelayCommand(
+  () => persistDocument(),
+  () => vm.CanSave,
+);
 vm.PropertyChanged.subscribe(() => save.NotifyCanExecuteChanged());
 
 ribbon.DataContext = vm;
 ribbon.Model = new RibbonModel({
-  Tabs: [new RibbonTab({
-    Id: 'home', Header: 'Home', KeyTip: 'H',
-    Groups: [new RibbonGroup({
-      Id: 'font', Header: 'Font',
-      Items: [
-        new RibbonToggleButton({
-          Id: 'bold', Label: 'Bold', Icon: 'bold', KeyTip: 'B',
-          Bindings: { checked: { path: 'Bold', mode: 'TwoWay' } }
+  Tabs: [
+    new RibbonTab({
+      Id: 'home',
+      Header: 'Home',
+      KeyTip: 'H',
+      Groups: [
+        new RibbonGroup({
+          Id: 'font',
+          Header: 'Font',
+          Items: [
+            new RibbonToggleButton({
+              Id: 'bold',
+              Label: 'Bold',
+              Icon: 'bold',
+              KeyTip: 'B',
+              Bindings: { checked: { path: 'Bold', mode: 'TwoWay' } },
+            }),
+            new RibbonButton({ Id: 'save', Label: 'Save', Command: save }),
+          ],
         }),
-        new RibbonButton({ Id: 'save', Label: 'Save', Command: save })
-      ]
-    })]
-  })]
+      ],
+    }),
+  ],
 });
 
 vm.Bold = true; // updates the view
@@ -120,8 +153,7 @@ CamelCase and PascalCase constructors/properties share the same underlying value
 For standalone binding outside the component:
 
 ```js
-const detach = bind(inputElement, 'value', vm,
-  new Binding('Title', { mode: 'TwoWay' }));
+const detach = bind(inputElement, 'value', vm, new Binding('Title', { mode: 'TwoWay' }));
 detach(); // also detach.dispose() / detach.Dispose()
 ```
 
@@ -135,11 +167,11 @@ The Web Component works directly with DOM properties and custom events. Use a re
 
 ## Samples
 
-| Example | Demonstrated behavior |
-| --- | --- |
+| Example                          | Demonstrated behavior                                                                                                                                                                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Workspace](examples/index.html) | Document text formatting/insertion, a workbook with editable cells and a small safe formula parser, presentation slides, three ribbon profiles, context tools, all control categories, layout/theming, customization, local saves and exports |
-| [MVVM](examples/mvvm.html) | Observable state, two-way text and checked bindings, command availability, asynchronous save, live collection updates |
-| [RibbonX](examples/ribbonx.html) | Editable RibbonX, explicit callback registry, dynamic menus, invalidation, selection state, warnings |
+| [MVVM](examples/mvvm.html)       | Observable state, two-way text and checked bindings, command availability, asynchronous save, live collection updates                                                                                                                         |
+| [RibbonX](examples/ribbonx.html) | Editable RibbonX, explicit callback registry, dynamic menus, invalidation, selection state, warnings                                                                                                                                          |
 
 The sample editors are compact hosts for exercising ribbon commands. Their HTML/CSV/JSON exports are not DOCX/XLSX/PPTX file-format implementations. They do not provide full editing, formula, layout or application compatibility.
 
@@ -159,15 +191,15 @@ GitHub CI runs Node 22/24, Chromium tests, package construction, and the .NET wr
 
 ## Architecture
 
-| Module | Responsibility |
-| --- | --- |
-| `src/core.js` | DOM-independent observable models, collections, commands, bindings and normalization |
-| `src/ribbon.js` | Shadow-DOM Web Component, rendering, command routing, interaction, adaptive overflow and personalization |
-| `src/styles.js`, `src/icons.js` | Scoped CSS tokens and original geometric UI icons |
-| `src/ribbonx.js` | Safe XML parsing, explicit callbacks and invalidation adapter |
-| `src/dotnet.js`, `dotnet/` | Data-only JS/.NET bridge and Razor wrapper |
-| `examples/` | Independent browser hosts showcasing the library |
-| `scripts/`, `.github/workflows/` | Dependency-free builds, archives, static serving, CI and publishing |
+| Module                           | Responsibility                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `src/core.js`                    | DOM-independent observable models, collections, commands, bindings and normalization                     |
+| `src/ribbon.js`                  | Shadow-DOM Web Component, rendering, command routing, interaction, adaptive overflow and personalization |
+| `src/styles.js`, `src/icons.js`  | Scoped CSS tokens and original geometric UI icons                                                        |
+| `src/ribbonx.js`                 | Safe XML parsing, explicit callbacks and invalidation adapter                                            |
+| `src/dotnet.js`, `dotnet/`       | Data-only JS/.NET bridge and Razor wrapper                                                               |
+| `examples/`                      | Independent browser hosts showcasing the library                                                         |
+| `scripts/`, `.github/workflows/` | Dependency-free builds, archives, static serving, CI and publishing                                      |
 
 Only the selected tab renders its controls. State updates batch into microtasks. A `ResizeObserver` maintains overflow, and listeners are detached on disconnection. The rendering strategy rebuilds the selected panel on state changes and restores focused inputs; it is not a virtualized or incremental DOM engine. Very large tabs and galleries should be measured against application workloads.
 

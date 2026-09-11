@@ -126,6 +126,6 @@ packed assembly and static assets, and publishes a temporary Blazor WebAssembly
 host that consumes the package; application-level interop should also be
 validated in the consuming Blazor app.
 
-The implementation workspace did not contain a .NET SDK, so no local C#/Razor
-compilation is claimed. The repository CI result is the source of truth for its
-build status.
+The GitHub .NET package workflow passed C#/Razor compilation, NuGet packing,
+asset verification, and publication of a temporary Blazor WebAssembly consumer.
+See the repository Actions page for the current commit build status.

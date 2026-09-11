@@ -10,6 +10,8 @@ Initial public release of RibbonWeb, a standalone native-ESM ribbon component fo
 - Ribbon controls, contextual surfaces and application showcase examples are documented in the README and capability matrix.
 - Separate `core`, `ribbonx` and `dotnet` entry points allow applications to import the relevant layer.
 - TypeScript declarations ship with the JavaScript package.
+- A buildable .NET 8 Razor class library packages the component and all browser assets for Blazor.
+- 34 Node tests, 58 Chromium behavior groups (including 29 RibbonX assertions), and strict TypeScript usage checks pass.
 
 ### Distribution
 
@@ -18,7 +20,7 @@ Initial public release of RibbonWeb, a standalone native-ESM ribbon component fo
 - Reproducible build scripts produce an npm tarball, a browser distribution ZIP, a complete source ZIP and SHA-256 checksums.
 - CI checks JavaScript syntax, model behavior, browser interaction and packaging.
 - GitHub Pages workflow publishes the interactive showcase, documentation and downloadable distributions.
-- Version-tag or manual release workflow publishes GitHub release artifacts. npm publishing is enabled when the maintainer provides `NPM_TOKEN`; GitHub Packages publishing is enabled with the repository variable `PUBLISH_GITHUB_PACKAGES=true`.
+- Version-tag, release-manifest or manual release workflow publishes GitHub release artifacts. npm publishing is enabled when the maintainer provides `NPM_TOKEN`; GitHub Packages publishing is enabled with the repository variable `PUBLISH_GITHUB_PACKAGES=true`. NuGet.org publishing is enabled with `NUGET_API_KEY`.
 
 ### Compatibility notes
 

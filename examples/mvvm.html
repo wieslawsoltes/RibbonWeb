@@ -1,24 +1,269 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MVVM integration · RibbonWeb</title>
-<style>
-*{box-sizing:border-box}body{margin:0;font:14px/1.55 system-ui,sans-serif;background:#f3f5f9;color:#192438}header{background:#152a48;color:white;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px}header a{color:#c9dfff}header strong{display:block;font-size:19px;letter-spacing:-.3px}header span{font-size:12px;color:#b5c9e4}nav{display:flex;gap:20px}ribbon-web{display:block;background:white;border-bottom:1px solid #dce2ec}.content{max-width:1250px;margin:28px auto;padding:0 24px;display:grid;grid-template-columns:1.15fr 1fr;gap:24px}.card{background:white;border:1px solid #dce2ec;border-radius:14px;padding:24px;box-shadow:0 3px 12px #172b4810}.eyebrow{font-size:11px;letter-spacing:1.4px;font-weight:700;text-transform:uppercase;color:#376ac9}h1{font-size:26px;line-height:1.2;margin:8px 0 14px}h2{font-size:17px;margin:0 0 14px}p{color:#53647a}label{display:block;font-size:12px;font-weight:650;margin:16px 0 6px}input[type=text]{width:100%;padding:10px 12px;border:1px solid #bbc7d8;border-radius:7px;font:inherit}button{font:inherit;cursor:pointer;background:#eef3fb;border:1px solid #ccd8e8;border-radius:7px;padding:8px 12px;color:#173c75}button:hover{background:#e1ebfb}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #78a8f8;outline-offset:2px}.controls{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.paper{margin:20px 0;padding:30px;border:1px solid #e0e5ed;border-radius:4px;min-height:185px;background:#fffefc;box-shadow:0 5px 14px #152a480d}.paper p{color:#23334a}.status{font-size:12px;font-weight:600;display:inline-block;padding:4px 10px;border-radius:20px;background:#eef3fb;color:#375786}pre{padding:16px;border-radius:9px;background:#132238;color:#d7e6fa;font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}code{font-family:ui-monospace,monospace}.hint{font-size:12px}.wide{grid-column:1/-1}.check{display:flex;align-items:center;gap:8px;font-size:13px}.log{list-style:none;padding:0;margin:0}.log li{padding:7px 0;border-bottom:1px solid #edf0f5;font-size:12px;color:#5b6d83}details summary{cursor:pointer;font-weight:650}.code-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:800px){.content,.code-grid{grid-template-columns:1fr}header{padding:16px 20px;align-items:flex-start}nav{flex-direction:column;gap:4px}.wide{grid-column:auto}}
-</style>
-</head>
-<body>
-<header><div><strong>RibbonWeb <span>/ integration examples</span></strong><span>Observable models, commands, and native web components</span></div><nav><a href="../index.html">Showcase</a><a href="./ribbonx.html">RibbonX example →</a></nav></header>
-<ribbon-web id="ribbon" aria-label="MVVM document ribbon"></ribbon-web>
-<main class="content">
-<section class="card"><div class="eyebrow">.NET patterns · browser runtime</div><h1>One view model. Two views.</h1><p>Edit this form or use the ribbon. Both views share observable state, two-way bindings, and command availability.</p>
-<label for="document-title">Document title</label><input id="document-title" type="text" maxlength="100">
-<label class="check"><input id="editing-enabled" type="checkbox" checked> Enable document editing</label>
-<div class="controls"><button id="reset" type="button">Reset document</button><button id="add-tool" type="button">Add observable command</button><button id="remove-tool" type="button">Remove last command</button></div>
-<div class="paper"><div class="eyebrow">Live preview</div><h2 id="preview-title"></h2><p id="preview-body">Shared state connects the document and its ribbon. Try Bold, Font size, or a formatting preset.</p></div>
-<output class="status" id="save-status" aria-live="polite"></output><p class="hint">Save writes this demo's document snapshot to this browser's local storage. Its asynchronous command disables itself while running. Edit the document to enable Save again.</p></section>
-<section class="card"><h2>Observable state</h2><p class="hint">PascalCase and camelCase aliases address the same properties. The view updates when the model raises <code>PropertyChanged</code>.</p><pre id="model-state" aria-label="Current model state"></pre><h2>Command activity</h2><ul class="log" id="event-log" aria-live="polite"></ul></section>
-<section class="card wide"><details open><summary>Use the same component from an MVVM application</summary><div class="code-grid"><div><p class="hint">Use .NET-shaped observable objects and command classes.</p><pre>const viewModel = new ObservableObject({
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MVVM integration · RibbonWeb</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          14px/1.55 system-ui,
+          sans-serif;
+        background: #f3f5f9;
+        color: #192438;
+      }
+      header {
+        background: #152a48;
+        color: white;
+        padding: 20px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      header a {
+        color: #c9dfff;
+      }
+      header strong {
+        display: block;
+        font-size: 19px;
+        letter-spacing: -0.3px;
+      }
+      header span {
+        font-size: 12px;
+        color: #b5c9e4;
+      }
+      nav {
+        display: flex;
+        gap: 20px;
+      }
+      ribbon-web {
+        display: block;
+        background: white;
+        border-bottom: 1px solid #dce2ec;
+      }
+      .content {
+        max-width: 1250px;
+        margin: 28px auto;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 24px;
+      }
+      .card {
+        background: white;
+        border: 1px solid #dce2ec;
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 3px 12px #172b4810;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #376ac9;
+      }
+      h1 {
+        font-size: 26px;
+        line-height: 1.2;
+        margin: 8px 0 14px;
+      }
+      h2 {
+        font-size: 17px;
+        margin: 0 0 14px;
+      }
+      p {
+        color: #53647a;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 650;
+        margin: 16px 0 6px;
+      }
+      input[type='text'] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #bbc7d8;
+        border-radius: 7px;
+        font: inherit;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        background: #eef3fb;
+        border: 1px solid #ccd8e8;
+        border-radius: 7px;
+        padding: 8px 12px;
+        color: #173c75;
+      }
+      button:hover {
+        background: #e1ebfb;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #78a8f8;
+        outline-offset: 2px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 16px 0;
+      }
+      .paper {
+        margin: 20px 0;
+        padding: 30px;
+        border: 1px solid #e0e5ed;
+        border-radius: 4px;
+        min-height: 185px;
+        background: #fffefc;
+        box-shadow: 0 5px 14px #152a480d;
+      }
+      .paper p {
+        color: #23334a;
+      }
+      .status {
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: #eef3fb;
+        color: #375786;
+      }
+      pre {
+        padding: 16px;
+        border-radius: 9px;
+        background: #132238;
+        color: #d7e6fa;
+        font:
+          12px/1.6 ui-monospace,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 12px 0;
+      }
+      code {
+        font-family: ui-monospace, monospace;
+      }
+      .hint {
+        font-size: 12px;
+      }
+      .wide {
+        grid-column: 1/-1;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .log {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .log li {
+        padding: 7px 0;
+        border-bottom: 1px solid #edf0f5;
+        font-size: 12px;
+        color: #5b6d83;
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 650;
+      }
+      .code-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      @media (max-width: 800px) {
+        .content,
+        .code-grid {
+          grid-template-columns: 1fr;
+        }
+        header {
+          padding: 16px 20px;
+          align-items: flex-start;
+        }
+        nav {
+          flex-direction: column;
+          gap: 4px;
+        }
+        .wide {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <strong>RibbonWeb <span>/ integration examples</span></strong
+        ><span>Observable models, commands, and native web components</span>
+      </div>
+      <nav><a href="../index.html">Showcase</a><a href="./ribbonx.html">RibbonX example →</a></nav>
+    </header>
+    <ribbon-web id="ribbon" aria-label="MVVM document ribbon"></ribbon-web>
+    <main class="content">
+      <section class="card">
+        <div class="eyebrow">.NET patterns · browser runtime</div>
+        <h1>One view model. Two views.</h1>
+        <p>
+          Edit this form or use the ribbon. Both views share observable state, two-way bindings, and
+          command availability.
+        </p>
+        <label for="document-title">Document title</label
+        ><input id="document-title" type="text" maxlength="100" />
+        <label class="check"
+          ><input id="editing-enabled" type="checkbox" checked /> Enable document editing</label
+        >
+        <div class="controls">
+          <button id="reset" type="button">Reset document</button
+          ><button id="add-tool" type="button">Add observable command</button
+          ><button id="remove-tool" type="button">Remove last command</button>
+        </div>
+        <div class="paper">
+          <div class="eyebrow">Live preview</div>
+          <h2 id="preview-title"></h2>
+          <p id="preview-body">
+            Shared state connects the document and its ribbon. Try Bold, Font size, or a formatting
+            preset.
+          </p>
+        </div>
+        <output class="status" id="save-status" aria-live="polite"></output>
+        <p class="hint">
+          Save writes this demo's document snapshot to this browser's local storage. Its
+          asynchronous command disables itself while running. Edit the document to enable Save
+          again.
+        </p>
+      </section>
+      <section class="card">
+        <h2>Observable state</h2>
+        <p class="hint">
+          PascalCase and camelCase aliases address the same properties. The view updates when the
+          model raises <code>PropertyChanged</code>.
+        </p>
+        <pre id="model-state" aria-label="Current model state"></pre>
+        <h2>Command activity</h2>
+        <ul class="log" id="event-log" aria-live="polite"></ul>
+      </section>
+      <section class="card wide">
+        <details open>
+          <summary>Use the same component from an MVVM application</summary>
+          <div class="code-grid">
+            <div>
+              <p class="hint">Use .NET-shaped observable objects and command classes.</p>
+              <pre>
+const viewModel = new ObservableObject({
   Title: 'Project brief', Bold: false
 });
 
@@ -37,7 +282,13 @@ ribbon.model = new RibbonModel({ Tabs: [
       })]
     })]
   })
-] });</pre></div><div><p class="hint">Bindings and collection notifications connect controls and state.</p><pre>new RibbonToggleButton({
+] });</pre
+              >
+            </div>
+            <div>
+              <p class="hint">Bindings and collection notifications connect controls and state.</p>
+              <pre>
+new RibbonToggleButton({
   Id: 'bold', Label: 'Bold',
   Bindings: {
     checked: new Binding('Bold', { mode: 'TwoWay' })
@@ -52,89 +303,256 @@ tools.Add(new RibbonButton({
   Id: 'new-tool', Label: 'New command'
 }));
 
-save.NotifyCanExecuteChanged();</pre></div></div><p class="hint">The component also accepts plain JavaScript objects and emits composed DOM events for React, Vue, Svelte, and other hosts. The JavaScript API does not require .NET; a separate interop bridge supports Blazor applications.</p></details></section>
-</main>
-<script type="module">
-import { ObservableObject, ObservableCollection, RelayCommand, AsyncRelayCommand, Binding, bind, RibbonModel, RibbonTab, RibbonGroup, RibbonButton, RibbonToggleButton, RibbonTextBox, RibbonSlider, RibbonMenuButton } from '../src/index.js';
+save.NotifyCanExecuteChanged();</pre
+              >
+            </div>
+          </div>
+          <p class="hint">
+            The component also accepts plain JavaScript objects and emits composed DOM events for
+            React, Vue, Svelte, and other hosts. The JavaScript API does not require .NET; a
+            separate interop bridge supports Blazor applications.
+          </p>
+        </details>
+      </section>
+    </main>
+    <script type="module">
+      import {
+        ObservableObject,
+        ObservableCollection,
+        RelayCommand,
+        AsyncRelayCommand,
+        Binding,
+        bind,
+        RibbonModel,
+        RibbonTab,
+        RibbonGroup,
+        RibbonButton,
+        RibbonToggleButton,
+        RibbonTextBox,
+        RibbonSlider,
+        RibbonMenuButton,
+      } from '../src/index.js';
 
-const ribbon = document.querySelector('#ribbon');
-const state = new ObservableObject({ Title: 'Project brief', Bold: false, FontSize: 18, CanEdit: true, Dirty: false, SaveCount: 0 });
-const tools = new ObservableCollection();
-const disposables = [];
-let nextTool = 0;
-const log = message => {
-  const li = document.createElement('li');
-  li.textContent = `${new Date().toLocaleTimeString()} · ${message}`;
-  document.querySelector('#event-log').prepend(li);
-  while (document.querySelector('#event-log').children.length > 7) document.querySelector('#event-log').lastChild.remove();
-};
-const save = new AsyncRelayCommand(async () => {
-  await new Promise(resolve => setTimeout(resolve, 450));
-  localStorage.setItem('ribbonweb-mvvm-document', JSON.stringify({ title: state.Title, bold: state.Bold, fontSize: state.FontSize }));
-  state.SaveCount += 1;
-  state.Dirty = false;
-  log(`Saved document snapshot ${state.SaveCount}`);
-}, () => state.Dirty);
-const reset = new RelayCommand(() => {
-  state.Title = 'Project brief'; state.Bold = false; state.FontSize = 18; state.Dirty = false;
-  save.NotifyCanExecuteChanged(); log('Reset shared view model');
-});
-const preset = (title, bold, size) => new RelayCommand(() => { state.Title = title; state.Bold = bold; state.FontSize = size; });
+      const ribbon = document.querySelector('#ribbon');
+      const state = new ObservableObject({
+        Title: 'Project brief',
+        Bold: false,
+        FontSize: 18,
+        CanEdit: true,
+        Dirty: false,
+        SaveCount: 0,
+      });
+      const tools = new ObservableCollection();
+      const disposables = [];
+      let nextTool = 0;
+      const log = (message) => {
+        const li = document.createElement('li');
+        li.textContent = `${new Date().toLocaleTimeString()} · ${message}`;
+        document.querySelector('#event-log').prepend(li);
+        while (document.querySelector('#event-log').children.length > 7)
+          document.querySelector('#event-log').lastChild.remove();
+      };
+      const save = new AsyncRelayCommand(
+        async () => {
+          await new Promise((resolve) => setTimeout(resolve, 450));
+          localStorage.setItem(
+            'ribbonweb-mvvm-document',
+            JSON.stringify({ title: state.Title, bold: state.Bold, fontSize: state.FontSize }),
+          );
+          state.SaveCount += 1;
+          state.Dirty = false;
+          log(`Saved document snapshot ${state.SaveCount}`);
+        },
+        () => state.Dirty,
+      );
+      const reset = new RelayCommand(() => {
+        state.Title = 'Project brief';
+        state.Bold = false;
+        state.FontSize = 18;
+        state.Dirty = false;
+        save.NotifyCanExecuteChanged();
+        log('Reset shared view model');
+      });
+      const preset = (title, bold, size) =>
+        new RelayCommand(() => {
+          state.Title = title;
+          state.Bold = bold;
+          state.FontSize = size;
+        });
 
-ribbon.dataContext = state;
-ribbon.model = new RibbonModel({
-  Id: 'mvvm-example', Title: 'MVVM document', Theme: 'light',
-  QuickAccessToolbar: [new RibbonButton({ Id: 'quick-save', Label: 'Save', Icon: 'save', Command: save })],
-  Tabs: [new RibbonTab({ Id: 'home', Header: 'Home', KeyTip: 'H', Groups: [
-    new RibbonGroup({ Id: 'document', Header: 'Document', Items: [
-      new RibbonButton({ Id: 'save', Label: 'Save', Icon: 'save', Size: 'large', KeyTip: 'S', Command: save }),
-      new RibbonButton({ Id: 'reset', Label: 'Reset', Icon: 'undo', Command: reset, KeyTip: 'R' })
-    ] }),
-    new RibbonGroup({ Id: 'format', Header: 'Formatting', Items: [
-      new RibbonToggleButton({ Id: 'bold', Label: 'Bold', Icon: 'bold', KeyTip: 'B', Bindings: { checked: new Binding('Bold', { mode: 'TwoWay' }), enabled: 'CanEdit' } }),
-      new RibbonSlider({ Id: 'font-size', Label: 'Font size', Min: 12, Max: 32, Step: 1, Width: 140, KeyTip: 'Z', Bindings: { value: new Binding('FontSize', { mode: 'TwoWay' }), enabled: 'CanEdit' } }),
-      new RibbonTextBox({ Id: 'title', Label: 'Title', Width: 160, MaxLength: 100, KeyTip: 'T', Bindings: { value: new Binding('Title', { mode: 'TwoWay' }), enabled: 'CanEdit' } })
-    ] }),
-    new RibbonGroup({ Id: 'presets', Header: 'Presets', Items: [
-      new RibbonMenuButton({ Id: 'preset', Label: 'Apply preset', Icon: 'brush', Size: 'large', Items: [
-        { Id: 'brief', Label: 'Project brief', Command: preset('Project brief', false, 18) },
-        { Id: 'heading', Label: 'Executive summary', Command: preset('Executive summary', true, 24) }
-      ] })
-    ] }),
-    new RibbonGroup({ Id: 'dynamic', Header: 'Observable commands', Items: tools })
-  ] })]
-});
+      ribbon.dataContext = state;
+      ribbon.model = new RibbonModel({
+        Id: 'mvvm-example',
+        Title: 'MVVM document',
+        Theme: 'light',
+        QuickAccessToolbar: [
+          new RibbonButton({ Id: 'quick-save', Label: 'Save', Icon: 'save', Command: save }),
+        ],
+        Tabs: [
+          new RibbonTab({
+            Id: 'home',
+            Header: 'Home',
+            KeyTip: 'H',
+            Groups: [
+              new RibbonGroup({
+                Id: 'document',
+                Header: 'Document',
+                Items: [
+                  new RibbonButton({
+                    Id: 'save',
+                    Label: 'Save',
+                    Icon: 'save',
+                    Size: 'large',
+                    KeyTip: 'S',
+                    Command: save,
+                  }),
+                  new RibbonButton({
+                    Id: 'reset',
+                    Label: 'Reset',
+                    Icon: 'undo',
+                    Command: reset,
+                    KeyTip: 'R',
+                  }),
+                ],
+              }),
+              new RibbonGroup({
+                Id: 'format',
+                Header: 'Formatting',
+                Items: [
+                  new RibbonToggleButton({
+                    Id: 'bold',
+                    Label: 'Bold',
+                    Icon: 'bold',
+                    KeyTip: 'B',
+                    Bindings: {
+                      checked: new Binding('Bold', { mode: 'TwoWay' }),
+                      enabled: 'CanEdit',
+                    },
+                  }),
+                  new RibbonSlider({
+                    Id: 'font-size',
+                    Label: 'Font size',
+                    Min: 12,
+                    Max: 32,
+                    Step: 1,
+                    Width: 140,
+                    KeyTip: 'Z',
+                    Bindings: {
+                      value: new Binding('FontSize', { mode: 'TwoWay' }),
+                      enabled: 'CanEdit',
+                    },
+                  }),
+                  new RibbonTextBox({
+                    Id: 'title',
+                    Label: 'Title',
+                    Width: 160,
+                    MaxLength: 100,
+                    KeyTip: 'T',
+                    Bindings: {
+                      value: new Binding('Title', { mode: 'TwoWay' }),
+                      enabled: 'CanEdit',
+                    },
+                  }),
+                ],
+              }),
+              new RibbonGroup({
+                Id: 'presets',
+                Header: 'Presets',
+                Items: [
+                  new RibbonMenuButton({
+                    Id: 'preset',
+                    Label: 'Apply preset',
+                    Icon: 'brush',
+                    Size: 'large',
+                    Items: [
+                      {
+                        Id: 'brief',
+                        Label: 'Project brief',
+                        Command: preset('Project brief', false, 18),
+                      },
+                      {
+                        Id: 'heading',
+                        Label: 'Executive summary',
+                        Command: preset('Executive summary', true, 24),
+                      },
+                    ],
+                  }),
+                ],
+              }),
+              new RibbonGroup({ Id: 'dynamic', Header: 'Observable commands', Items: tools }),
+            ],
+          }),
+        ],
+      });
 
-disposables.push(bind(document.querySelector('#document-title'), 'value', state, new Binding('Title', { mode: 'TwoWay' })));
-disposables.push(bind(document.querySelector('#editing-enabled'), 'checked', state, new Binding('CanEdit', { mode: 'TwoWay' })));
-function renderState() {
-  document.querySelector('#preview-title').textContent = state.Title || 'Untitled document';
-  document.querySelector('#preview-body').style.fontWeight = state.Bold ? '700' : '400';
-  document.querySelector('#preview-body').style.fontSize = `${state.FontSize}px`;
-  document.querySelector('#model-state').textContent = JSON.stringify(state.toJSON(), null, 2);
-  document.querySelector('#save-status').textContent = save.IsRunning ? 'Saving…' : state.Dirty ? 'Unsaved changes' : `All changes saved · ${state.SaveCount} snapshots`;
-  document.querySelector('#document-title').disabled = !state.CanEdit;
-  document.querySelector('#remove-tool').disabled = tools.Count === 0;
-}
-disposables.push(state.PropertyChanged.subscribe(event => {
-  if (['title', 'bold', 'fontSize'].includes(event.propertyName)) state.Dirty = true;
-  save.NotifyCanExecuteChanged(); renderState();
-}));
-disposables.push(save.PropertyChanged.subscribe(renderState));
-disposables.push(tools.CollectionChanged.subscribe(renderState));
-document.querySelector('#reset').addEventListener('click', () => reset.Execute());
-document.querySelector('#add-tool').addEventListener('click', () => {
-  const n = ++nextTool;
-  let count = 0;
-  const tool = new RibbonButton({ Id: `tool-${n}`, Label: `Tool ${n}`, Icon: 'plus' });
-  tool.Command = new RelayCommand(() => { tool.Label = `Tool ${n} · ${++count}`; log(`Observable tool ${n} executed ${count} time(s)`); });
-  tools.Add(tool);
-  log(`Added command ${n} through ObservableCollection.Add()`);
-});
-document.querySelector('#remove-tool').addEventListener('click', () => { if (tools.Count) { tools.RemoveAt(tools.Count - 1); log('Removed the last observable command'); } });
-ribbon.addEventListener('ribbon-error', event => log(`Command failed: ${event.detail.error?.message || 'Unknown error'}`));
-window.addEventListener('pagehide', () => disposables.forEach(dispose => dispose()), { once: true });
-renderState();
-log('View model connected. Edit the document to enable Save.');
-</script>
-</body></html>
+      disposables.push(
+        bind(
+          document.querySelector('#document-title'),
+          'value',
+          state,
+          new Binding('Title', { mode: 'TwoWay' }),
+        ),
+      );
+      disposables.push(
+        bind(
+          document.querySelector('#editing-enabled'),
+          'checked',
+          state,
+          new Binding('CanEdit', { mode: 'TwoWay' }),
+        ),
+      );
+      function renderState() {
+        document.querySelector('#preview-title').textContent = state.Title || 'Untitled document';
+        document.querySelector('#preview-body').style.fontWeight = state.Bold ? '700' : '400';
+        document.querySelector('#preview-body').style.fontSize = `${state.FontSize}px`;
+        document.querySelector('#model-state').textContent = JSON.stringify(
+          state.toJSON(),
+          null,
+          2,
+        );
+        document.querySelector('#save-status').textContent = save.IsRunning
+          ? 'Saving…'
+          : state.Dirty
+            ? 'Unsaved changes'
+            : `All changes saved · ${state.SaveCount} snapshots`;
+        document.querySelector('#document-title').disabled = !state.CanEdit;
+        document.querySelector('#remove-tool').disabled = tools.Count === 0;
+      }
+      disposables.push(
+        state.PropertyChanged.subscribe((event) => {
+          if (['title', 'bold', 'fontSize'].includes(event.propertyName)) state.Dirty = true;
+          save.NotifyCanExecuteChanged();
+          renderState();
+        }),
+      );
+      disposables.push(save.PropertyChanged.subscribe(renderState));
+      disposables.push(tools.CollectionChanged.subscribe(renderState));
+      document.querySelector('#reset').addEventListener('click', () => reset.Execute());
+      document.querySelector('#add-tool').addEventListener('click', () => {
+        const n = ++nextTool;
+        let count = 0;
+        const tool = new RibbonButton({ Id: `tool-${n}`, Label: `Tool ${n}`, Icon: 'plus' });
+        tool.Command = new RelayCommand(() => {
+          tool.Label = `Tool ${n} · ${++count}`;
+          log(`Observable tool ${n} executed ${count} time(s)`);
+        });
+        tools.Add(tool);
+        log(`Added command ${n} through ObservableCollection.Add()`);
+      });
+      document.querySelector('#remove-tool').addEventListener('click', () => {
+        if (tools.Count) {
+          tools.RemoveAt(tools.Count - 1);
+          log('Removed the last observable command');
+        }
+      });
+      ribbon.addEventListener('ribbon-error', (event) =>
+        log(`Command failed: ${event.detail.error?.message || 'Unknown error'}`),
+      );
+      window.addEventListener('pagehide', () => disposables.forEach((dispose) => dispose()), {
+        once: true,
+      });
+      renderState();
+      log('View model connected. Edit the document to enable Save.');
+    </script>
+  </body>
+</html>

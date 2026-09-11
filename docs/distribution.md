@@ -26,13 +26,13 @@ npm run release:pack
 
 The `artifacts/` directory contains:
 
-| File | Purpose |
-| --- | --- |
-| `wieslawsoltes-ribbon-web-VERSION.tgz` | npm-compatible library package |
-| `ribbon-web-VERSION-browser.zip` | Browser module files, source, examples, documentation and a showcase entry page |
-| `ribbon-web-VERSION-source.zip` | Complete source, scripts, tests, workflows, examples and documentation |
-| `SHA256SUMS.txt` | SHA-256 checksums of the three distribution archives |
-| `manifest.json` | Package version, filenames, lengths and checksums |
+| File                                   | Purpose                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------- |
+| `wieslawsoltes-ribbon-web-VERSION.tgz` | npm-compatible library package                                                  |
+| `ribbon-web-VERSION-browser.zip`       | Browser module files, source, examples, documentation and a showcase entry page |
+| `ribbon-web-VERSION-source.zip`        | Complete source, scripts, tests, workflows, examples and documentation          |
+| `SHA256SUMS.txt`                       | SHA-256 checksums of the three distribution archives                            |
+| `manifest.json`                        | Package version, filenames, lengths and checksums                               |
 
 ZIP generation uses fixed timestamps, deterministic ordering and Node's built-in compression. The same input files produce the same ZIP bytes on the same supported runtime. No external zip utility is required. Browser files must be served over HTTP(S); browser module security generally prevents opening the example directly through `file:` URLs.
 

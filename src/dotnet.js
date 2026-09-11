@@ -5,11 +5,12 @@ function safeValue(value, seen = new WeakSet(), depth = 0) {
   if (typeof value !== 'object' || depth > 6 || seen.has(value)) return undefined;
   seen.add(value);
   if (Array.isArray(value)) {
-    const result = value.slice(0, 256).map(item => safeValue(item, seen, depth + 1) ?? null);
+    const result = value.slice(0, 256).map((item) => safeValue(item, seen, depth + 1) ?? null);
     seen.delete(value);
     return result;
   }
-  if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) return undefined;
+  if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+    return undefined;
   const result = Object.create(null);
   for (const key of Object.keys(value).slice(0, 256)) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
@@ -28,10 +29,13 @@ function safeValue(value, seen = new WeakSet(), depth = 0) {
  * The host owns the DotNetObjectReference lifetime. Dispose the bridge first.
  */
 export function createDotNetBridge(ribbon, dotNetObject, options = {}) {
-  if (!ribbon || typeof ribbon.addEventListener !== 'function') throw new TypeError('A RibbonWeb element is required.');
-  if (!dotNetObject || typeof dotNetObject.invokeMethodAsync !== 'function') throw new TypeError('A DotNetObjectReference is required.');
+  if (!ribbon || typeof ribbon.addEventListener !== 'function')
+    throw new TypeError('A RibbonWeb element is required.');
+  if (!dotNetObject || typeof dotNetObject.invokeMethodAsync !== 'function')
+    throw new TypeError('A DotNetObjectReference is required.');
   const methodName = options.methodName ?? 'OnRibbonEvent';
-  if (typeof methodName !== 'string' || !methodName) throw new TypeError('methodName must be a non-empty string.');
+  if (typeof methodName !== 'string' || !methodName)
+    throw new TypeError('methodName must be a non-empty string.');
   let disposed = false;
   let pending = Promise.resolve();
   const eventTypes = ['ribbon-command', 'ribbon-change', 'ribbon-tab-change'];
@@ -47,27 +51,54 @@ export function createDotNetBridge(ribbon, dotNetObject, options = {}) {
     // Maintain the same order for asynchronous .NET handlers as DOM dispatch order.
     pending = pending.then(async () => {
       if (disposed) return;
-      try { await dotNetObject.invokeMethodAsync(methodName, payload); }
-      catch (error) {
+      try {
+        await dotNetObject.invokeMethodAsync(methodName, payload);
+      } catch (error) {
         if (disposed) return;
         if (typeof options.onError === 'function') options.onError(error, payload);
-        else if (typeof CustomEvent === 'function') ribbon.dispatchEvent(new CustomEvent('ribbon-dotnet-error', { detail: { error, event: payload }, bubbles: true, composed: true }));
+        else if (typeof CustomEvent === 'function')
+          ribbon.dispatchEvent(
+            new CustomEvent('ribbon-dotnet-error', {
+              detail: { error, event: payload },
+              bubbles: true,
+              composed: true,
+            }),
+          );
       }
     });
   }
   for (const type of eventTypes) ribbon.addEventListener(type, forward);
-  function assertActive() { if (disposed) throw new Error('This .NET ribbon bridge has been disposed.'); }
+  function assertActive() {
+    if (disposed) throw new Error('This .NET ribbon bridge has been disposed.');
+  }
   return {
-    setModel(model) { assertActive(); ribbon.model = model; },
-    setDataContext(dataContext) { assertActive(); ribbon.dataContext = dataContext; },
-    updateControl(id, changes) { assertActive(); return ribbon.updateControl(id, changes); },
-    setContext(name, active) { assertActive(); return ribbon.setContext(name, !!active); },
-    selectTab(id) { assertActive(); return ribbon.selectTab(id); },
-    async flush() { await pending; },
+    setModel(model) {
+      assertActive();
+      ribbon.model = model;
+    },
+    setDataContext(dataContext) {
+      assertActive();
+      ribbon.dataContext = dataContext;
+    },
+    updateControl(id, changes) {
+      assertActive();
+      return ribbon.updateControl(id, changes);
+    },
+    setContext(name, active) {
+      assertActive();
+      return ribbon.setContext(name, !!active);
+    },
+    selectTab(id) {
+      assertActive();
+      return ribbon.selectTab(id);
+    },
+    async flush() {
+      await pending;
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
       for (const type of eventTypes) ribbon.removeEventListener(type, forward);
-    }
+    },
   };
 }

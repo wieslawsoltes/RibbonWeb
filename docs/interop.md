@@ -20,7 +20,8 @@ import { createRibbonXAdapter } from './ribbonweb/ribbonx.js';
 
 let bold = false;
 let ribbonUi;
-const adapter = createRibbonXAdapter(`
+const adapter = createRibbonXAdapter(
+  `
   <customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui"
             onLoad="loaded">
     <ribbon><tabs><tab id="home" label="Home">
@@ -32,25 +33,40 @@ const adapter = createRibbonXAdapter(`
         <dynamicMenu id="recent" label="Recent" getContent="recentFiles" />
       </group>
     </tab></tabs></ribbon>
-  </customUI>`, {
-  loaded(ui) { ribbonUi = ui; },
-  isBold() { return bold; },
-  toggleBold(control, pressed) {
-    bold = pressed;
-    // Apply formatting in your editor, then refresh callback-derived state.
-    ribbonUi.InvalidateControl(control.id);
-  },
-  fontName() { return 'Aptos'; },
-  changeFont(control, text) { console.log(control.id, text); },
-  recentFiles() {
-    return `<menu xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  </customUI>`,
+  {
+    loaded(ui) {
+      ribbonUi = ui;
+    },
+    isBold() {
+      return bold;
+    },
+    toggleBold(control, pressed) {
+      bold = pressed;
+      // Apply formatting in your editor, then refresh callback-derived state.
+      ribbonUi.InvalidateControl(control.id);
+    },
+    fontName() {
+      return 'Aptos';
+    },
+    changeFont(control, text) {
+      console.log(control.id, text);
+    },
+    recentFiles() {
+      return `<menu xmlns="http://schemas.microsoft.com/office/2009/07/customui">
       <button id="recent-1" label="Quarterly report" onAction="openRecent" />
     </menu>`;
+    },
+    openRecent(control) {
+      console.log('Open', control.id);
+    },
   },
-  openRecent(control) { console.log('Open', control.id); }
-}, {
-  onWarning(warning) { console.warn(warning.code, warning.message); }
-});
+  {
+    onWarning(warning) {
+      console.warn(warning.code, warning.message);
+    },
+  },
+);
 
 adapter.attach(document.querySelector('ribbon-web'));
 // Later, after document state changes:
@@ -60,19 +76,19 @@ adapter.ActivateTab('home');
 // adapter.dispose();
 ```
 
-| RibbonX surface | Web mapping |
-| --- | --- |
-| `tab`, `group` | Tab `header`, group `header`, and `items` |
-| `button`, `toggleButton`, `checkBox` | `button`, `toggle`, `checkbox`; toggle state uses `checked` |
-| `editBox`, `comboBox`, `dropDown` | `textbox`, `combobox`, `dropdown`; state uses `value` |
-| `menu`, `splitButton`, `gallery` | `menu`, `split`, `gallery` |
-| `dynamicMenu` | `menu` with asynchronous `getItems()` and `getContent` XML |
-| `separator`, `labelControl` | `separator`, `label` |
-| `box`, `buttonGroup` | Child controls flattened into their parent; warning emitted |
-| `qat` shared/document controls | `quickAccessToolbar` |
-| `contextualTabs` | Tabs associated with a host-controlled context ID |
-| Simple `officeMenu` / `backstage` commands | `backstage` command items |
-| `dialogBoxLauncher` | A regular group button; warning emitted |
+| RibbonX surface                            | Web mapping                                                 |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| `tab`, `group`                             | Tab `header`, group `header`, and `items`                   |
+| `button`, `toggleButton`, `checkBox`       | `button`, `toggle`, `checkbox`; toggle state uses `checked` |
+| `editBox`, `comboBox`, `dropDown`          | `textbox`, `combobox`, `dropdown`; state uses `value`       |
+| `menu`, `splitButton`, `gallery`           | `menu`, `split`, `gallery`                                  |
+| `dynamicMenu`                              | `menu` with asynchronous `getItems()` and `getContent` XML  |
+| `separator`, `labelControl`                | `separator`, `label`                                        |
+| `box`, `buttonGroup`                       | Child controls flattened into their parent; warning emitted |
+| `qat` shared/document controls             | `quickAccessToolbar`                                        |
+| `contextualTabs`                           | Tabs associated with a host-controlled context ID           |
+| Simple `officeMenu` / `backstage` commands | `backstage` command items                                   |
+| `dialogBoxLauncher`                        | A regular group button; warning emitted                     |
 
 The importer supports `getEnabled`, `getVisible`, `getLabel`, `getPressed`,
 `getText`, `getItemCount`, `getItemLabel`, `getItemID`, `getSelectedItemID`,
@@ -85,15 +101,15 @@ menus during import.
 Callbacks receive a frozen descriptor with `id`, `Id`, and `tag`, plus `idMso` /
 `idQ` if specified. Actions follow the common RibbonX signatures:
 
-| Callback | Arguments |
-| --- | --- |
-| Button `onAction` | `(control)` |
-| Toggle/check box `onAction` | `(control, pressed)` |
-| Drop-down/gallery `onAction` | `(control, selectedItemId, selectedItemIndex)` |
-| Text/combo `onChange` | `(control, text)` |
-| Item getters | `(control, index)` |
-| `getContent` | `(control)` returning a `<menu>` XML string |
-| Root `onLoad` | `(adapter)` with `Invalidate`, `InvalidateControl`, `ActivateTab` |
+| Callback                     | Arguments                                                         |
+| ---------------------------- | ----------------------------------------------------------------- |
+| Button `onAction`            | `(control)`                                                       |
+| Toggle/check box `onAction`  | `(control, pressed)`                                              |
+| Drop-down/gallery `onAction` | `(control, selectedItemId, selectedItemIndex)`                    |
+| Text/combo `onChange`        | `(control, text)`                                                 |
+| Item getters                 | `(control, index)`                                                |
+| `getContent`                 | `(control)` returning a `<menu>` XML string                       |
+| Root `onLoad`                | `(adapter)` with `Invalidate`, `InvalidateControl`, `ActivateTab` |
 
 `Invalidate()` refreshes all imported getter bindings and updates the attached
 element. `InvalidateControl(id)` refreshes one registered control. Both preserve
@@ -128,7 +144,7 @@ small `dotnet.js` module through `IJSRuntime`:
 ```js
 import { createDotNetBridge } from './ribbonweb/dotnet.js';
 const bridge = createDotNetBridge(ribbonElement, dotNetObjectReference, {
-  methodName: 'OnRibbonEvent'
+  methodName: 'OnRibbonEvent',
 });
 bridge.setModel({ tabs: [{ id: 'home', header: 'Home', groups: [] }] });
 bridge.updateControl('save', { enabled: false });
@@ -211,11 +227,11 @@ cross-runtime objects, arbitrary binding expressions, WPF controls, COM, or .NET
 delegates directly serializable. A JavaScript MVVM host can instead use the
 library's native observable and command classes without the interop bridge.
 
-The implementation workspace did not have a .NET SDK. C#/Razor compilation and
-packaging are provided as CI checks, including a temporary Blazor WebAssembly
-host consuming the packed library. Do not treat those checks as passed until the
-workflow has completed; application-level interop should also be validated in
-the chosen consuming app.
+The [.NET package CI](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/dotnet.yml)
+compiled the C# and Razor library, packed NuGet artifacts, verified all JavaScript
+static assets byte-for-byte, and published a temporary Blazor WebAssembly host
+consuming the package. These checks passed for this release's implementation.
+Application-level interop should also be validated in the chosen consuming app.
 
 ## .NET release integration
 
