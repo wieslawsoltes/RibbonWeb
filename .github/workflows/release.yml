@@ -2,6 +2,8 @@ name: Release library
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['release.json']
   workflow_dispatch:
     inputs:
       version:
@@ -19,7 +21,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+      RELEASE_VERSION: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +46,7 @@ jobs:
         run: |
           dotnet restore dotnet/RibbonWeb.Blazor.csproj
           dotnet build dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-restore
-          dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore --output artifacts
+          dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore -p:PackageOutputPath="$PWD/artifacts"
           node scripts/checksums.mjs
       - name: Publish GitHub release and attach archives
         env:

@@ -130,3 +130,9 @@ Then authenticate with a token that can read the package and install its version
 ## Verification and hosting compatibility
 
 The CI matrix exercises Node.js 22 and 24. Browser tests install a pinned Playwright Chromium version and interact with the real component. A Chromium CI result does not establish testing on physical touch hardware, assistive technology, Firefox or Safari unless separately reported. The package build deliberately has no compiler/transpiler stage, so browser targets must support modern custom elements, Shadow DOM and native ES modules used by the implementation.
+
+## Release manifest trigger
+
+The release workflow also runs when `release.json` changes on `main`. Commit `{ "version": "0.1.0" }` with the matching package and lockfile versions to publish that exact commit after the workflow checks. This is useful when your GitHub integration can commit files but cannot dispatch workflows or push tags. The workflow creates the version tag only after checks and package builds pass. Tags already pointing to another commit are rejected; bump the version for a new release.
+
+The release includes a built `RibbonWeb.Blazor` NuGet package and symbols. Set `NUGET_API_KEY` to enable NuGet.org publishing; without it, the `.nupkg` is still available as a GitHub release asset. NuGet.org publication is separate from building the package.

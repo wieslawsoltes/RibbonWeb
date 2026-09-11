@@ -59,7 +59,7 @@ export async function packageRelease() {
   const browserFiles = (await Promise.all(['dist', 'src', 'examples', 'docs', 'LICENSE', 'README.md'].map(name => walk(resolve(root, name))))).flat();
   browserFiles.push({ name: 'index.html', data: Buffer.from('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="refresh" content="0;url=./examples/"><title>RibbonWeb</title><a href="./examples/">Open the RibbonWeb showcase</a></html>\n') });
   await writeFile(resolve(output, `ribbon-web-${pkg.version}-browser.zip`), createZip(browserFiles));
-  const sourceFiles = (await Promise.all(['src', 'scripts', 'examples', 'docs', 'dotnet', 'tests', '.github', 'package.json', 'package-lock.json', 'index.d.ts', 'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', '.gitignore'].map(name => walk(resolve(root, name))))).flat();
+  const sourceFiles = (await Promise.all(['src', 'scripts', 'examples', 'docs', 'dotnet', 'tests', '.github', 'package.json', 'package-lock.json', 'release.json', 'global.json', 'index.d.ts', 'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', '.gitignore'].map(name => walk(resolve(root, name))))).flat();
   await writeFile(resolve(output, `ribbon-web-${pkg.version}-source.zip`), createZip(sourceFiles));
   const manifest = { name: pkg.name, version: pkg.version, format: 'esm', npm: packed.filename, files: [] };
   for (const file of (await readdir(output)).sort()) {

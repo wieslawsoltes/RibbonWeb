@@ -30,7 +30,7 @@ jobs:
       - name: Build C# and Razor components
         run: dotnet build dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-restore
       - name: Pack NuGet library and symbols
-        run: dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore --output artifacts/dotnet
+        run: dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore -p:PackageOutputPath="$PWD/artifacts/dotnet"
       - name: Verify assembly and JavaScript static web assets
         run: |
           python3 - <<'PY'

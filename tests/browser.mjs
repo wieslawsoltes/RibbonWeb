@@ -452,6 +452,319 @@ test('markup-only custom element builds groups and controls without an imperativ
   assert.equal(await attr(control('toggle'), 'aria-pressed'), 'true');
 });
 
+test('dynamic tab/group/control APIs normalize typed models and support ordered insertion', async () => {
+  await setup();
+  const typed = await page.evaluate(() => {
+    const tab = ribbon.AddTab({ Id: 'tools', Header: 'Tools', Groups: [] }, 1);
+    const group = ribbon.AddGroup('tools', { Id: 'tools-main', Header: 'Tool commands', Items: [] });
+    const added = ribbon.AddControl('tools-main', { Id: 'tool-action', Header: 'Dynamic action', Command: () => state.calls.push('dynamic') }, 0);
+    return [tab instanceof api.RibbonTab, group instanceof api.RibbonGroup, added instanceof api.RibbonControl];
+  });
+  assert.deepEqual(typed, [true, true, true]);
+  await flush();
+  assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Home', 'Tools', 'Insert']);
+  await page.getByRole('tab', { name: 'Tools', exact: true }).click();
+  await control('tool-action').click();
+  assert.deepEqual(await page.evaluate(() => state.calls), ['dynamic']);
+  await page.evaluate(() => { ribbon.GetControl('tool-action').Header = 'Dynamic renamed'; });
+  await flush();
+  assert.equal(await control('tool-action').textContent(), 'Dynamic renamed');
+  await assert.rejects(page.evaluate(() => ribbon.addTab({ id: 'tools', header: 'Duplicate' })), /Duplicate tab/);
+  await assert.rejects(page.evaluate(() => ribbon.addGroup('tools', { id: 'tools-main', header: 'Duplicate' })), /Duplicate group/);
+  await assert.rejects(page.evaluate(() => ribbon.addControl('tools-main', { id: 'tool-action', label: 'Duplicate' })), /Duplicate control/);
+});
+
+test('removing selected tabs and controls restores selection and removes QAT references', async () => {
+  await setup();
+  await page.evaluate(() => { ribbon.addToQuickAccess('run'); ribbon.AddTab({ id: 'temporary', header: 'Temporary', groups: [] }); ribbon.SelectedTab = 'temporary'; });
+  await flush();
+  assert.equal(await page.evaluate(() => ribbon.RemoveTab('temporary')), true);
+  await flush();
+  assert.equal(await page.evaluate(() => ribbon.SelectedTab), 'home');
+  assert.equal(await page.evaluate(() => ribbon.Model.SelectedTab), 'home');
+  assert.equal(await page.evaluate(() => ribbon.RemoveTab('missing')), false);
+  assert.equal(await page.evaluate(() => ribbon.RemoveControl('run')), true);
+  await flush();
+  assert.equal(await page.locator('ribbon-web [data-control-id="run"]').count(), 0);
+  assert.deepEqual(await page.evaluate(() => ribbon.exportCustomization().quickAccessToolbar), []);
+  assert.equal(await page.evaluate(() => ribbon.RemoveControl('run')), false);
+});
+
+test('quick access APIs add, deduplicate, reorder and remove executable commands', async () => {
+  await setup();
+  await page.evaluate(() => { ribbon.setQuickAccess(['run', 'shape', 'run', 'missing']); ribbon.moveQuickAccess('shape', 0); });
+  await flush();
+  const qat = page.getByRole('toolbar', { name: 'Quick access toolbar', exact: true });
+  assert.deepEqual(await qat.locator('[data-control-id]').evaluateAll(nodes => nodes.map(n => n.dataset.controlId)), ['shape', 'run']);
+  await qat.locator('[data-control-id="shape"]').click();
+  assert.deepEqual(await page.evaluate(() => state.calls), [['shape']]);
+  await page.evaluate(() => { ribbon.removeFromQuickAccess('shape'); ribbon.addToQuickAccess('run'); });
+  await flush();
+  assert.deepEqual(await qat.locator('[data-control-id]').evaluateAll(nodes => nodes.map(n => n.dataset.controlId)), ['run']);
+  assert.equal(await page.evaluate(() => ribbon.moveQuickAccess('missing', 0)), false);
+});
+
+test('.NET semantic property aliases drive visibility, checked state, text and images', async () => {
+  await setup(() => { makeRibbon({ items: [
+    new api.RibbonToggleButton({ Id: 'semantic', Header: 'Semantic toggle', IsChecked: true, IsEnabled: false, SmallImageSource: 'bold', ToolTipTitle: 'Semantic tooltip', ToolTipDescription: 'A precise tooltip description' }),
+    new api.RibbonTextBox({ Id: 'semantic-text', Header: 'Semantic text', Text: 'Initial text' }),
+    new api.RibbonButton({ Id: 'semantic-hidden', Header: 'Hidden action', IsVisible: false })
+  ] }); });
+  assert.equal(await attr(control('semantic'), 'aria-pressed'), 'true');
+  assert.equal(await control('semantic').isDisabled(), true);
+  assert.equal(await attr(control('semantic'), 'aria-label'), 'Semantic tooltip');
+  assert.equal(await control('semantic').locator('svg').count(), 1);
+  assert.equal(await input('semantic-text').inputValue(), 'Initial text');
+  assert.equal(await control('semantic-hidden').count(), 0);
+  await page.evaluate(() => { ribbon.UpdateControl('semantic', { IsEnabled: true, IsChecked: false, Header: 'Updated semantics' }); ribbon.GetControl('semantic-hidden').IsVisible = true; ribbon.GetControl('semantic-text').Text = 'Changed text'; });
+  await flush();
+  assert.equal(await control('semantic').isEnabled(), true);
+  assert.equal(await attr(control('semantic'), 'aria-pressed'), 'false');
+  assert.equal(await control('semantic').textContent(), 'Updated semantics');
+  assert.equal(await control('semantic-hidden').isVisible(), true);
+  assert.equal(await input('semantic-text').inputValue(), 'Changed text');
+});
+
+test('.NET semantic binding keys and PascalCase converters update accessible labels and parameters', async () => {
+  await setup(() => {
+    window.vm = new api.ObservableObject({ Caption: 'Bound caption', Allowed: true, Pressed: false, Title: 'mixed', Parameter: 17 });
+    makeRibbon({ items: [
+      new api.RibbonToggleButton({ Id: 'bound', Bindings: { Header: 'Caption', IsEnabled: 'Allowed', IsChecked: new api.Binding('Pressed', { Mode: 'TwoWay' }), CommandParameter: 'Parameter' }, Command: parameter => state.calls.push(parameter) }),
+      new api.RibbonTextBox({ Id: 'converted', Header: 'Converted title', Bindings: { Text: new api.Binding('Title', { Mode: 'TwoWay', Converter: { Convert: value => value.toUpperCase(), ConvertBack: value => value.toLowerCase() } }) } })
+    ] }, vm);
+  });
+  assert.equal(await control('bound').textContent(), 'Bound caption');
+  assert.equal(await attr(control('bound'), 'aria-label'), 'Bound caption');
+  await control('bound').click();
+  assert.equal(await page.evaluate(() => vm.Pressed), true);
+  assert.deepEqual(await page.evaluate(() => state.calls), [17]);
+  assert.equal(await input('converted').inputValue(), 'MIXED');
+  await input('converted').fill('ENTERED');
+  await input('converted').press('Tab');
+  assert.equal(await page.evaluate(() => vm.Title), 'entered');
+  await page.evaluate(() => { vm.Caption = 'Updated bound caption'; vm.Allowed = false; });
+  await flush();
+  assert.equal(await attr(control('bound'), 'aria-label'), 'Updated bound caption');
+  assert.equal(await control('bound').isDisabled(), true);
+});
+
+test('replacing ItemsSource preserves selection and subscribes to the new collection', async () => {
+  await setup(() => { window.oldItems = new api.ObservableCollection([{ label: 'Alpha', value: 'a' }]); makeRibbon({ items: [new api.RibbonDropDown({ Id: 'source', Header: 'Options', ItemsSource: oldItems, SelectedValue: 'a' })] }); });
+  assert.equal(await input('source').inputValue(), 'a');
+  await page.evaluate(() => { window.nextItems = new api.ObservableCollection([{ label: 'Beta', value: 'b' }]); ribbon.GetControl('source').ItemsSource = nextItems; ribbon.GetControl('source').SelectedValue = 'b'; });
+  await flush();
+  assert.equal(await input('source').inputValue(), 'b');
+  assert.equal(await page.evaluate(() => oldItems.CollectionChanged.count), 0);
+  await page.evaluate(() => nextItems.Add({ label: 'Gamma', value: 'g' }));
+  await flush();
+  assert.equal(await input('source').locator('option').count(), 2);
+  await input('source').selectOption('g');
+  assert.equal(await page.evaluate(() => ribbon.GetControl('source').SelectedValue), 'g');
+});
+
+test('nested DataContext replacement detaches the old child and observes the new one', async () => {
+  await setup(() => { window.oldChild = new api.ObservableObject({ Title: 'Old child' }); window.vm = new api.ObservableObject({ Editor: oldChild }); makeRibbon({ items: [{ id: 'nested-name', type: 'textbox', label: 'Nested title', bindings: { value: new api.Binding('Editor.Title', { mode: 'TwoWay' }) } }] }, vm); });
+  assert.equal(await input('nested-name').inputValue(), 'Old child');
+  await page.evaluate(() => { window.newChild = new api.ObservableObject({ Title: 'New child' }); vm.Editor = newChild; });
+  await flush();
+  assert.equal(await input('nested-name').inputValue(), 'New child');
+  assert.equal(await page.evaluate(() => oldChild.PropertyChanged.count), 0);
+  await page.evaluate(() => { newChild.Title = 'New child changed'; });
+  await flush();
+  assert.equal(await input('nested-name').inputValue(), 'New child changed');
+  await input('nested-name').fill('Edited nested value');
+  await input('nested-name').press('Tab');
+  assert.equal(await page.evaluate(() => newChild.Title), 'Edited nested value');
+  assert.equal(await page.evaluate(() => oldChild.Title), 'Old child');
+});
+
+test('model Context and SelectedTab replacements immediately change contextual UI', async () => {
+  await setup();
+  await page.evaluate(() => { ribbon.Model.Context = { picture: true }; ribbon.Model.SelectedTab = 'picture'; });
+  await flush();
+  assert.equal(await page.getByRole('tab', { name: 'Picture', exact: true }).isVisible(), true);
+  assert.equal(await control('crop').isVisible(), true);
+  await page.evaluate(() => { ribbon.Model.Context = {}; });
+  await flush();
+  assert.equal(await page.getByRole('tab', { name: 'Picture', exact: true }).count(), 0);
+  assert.equal(await page.evaluate(() => ribbon.Model.SelectedTab), 'home');
+});
+
+test('RelayCommand group launchers honor availability and receive the group parameter', async () => {
+  await setup(() => { window.allowed = false; window.launcherCommand = new api.RelayCommand(group => state.calls.push(group.id), () => allowed); makeRibbon({ tabs: [{ id: 'home', header: 'Home', groups: [{ id: 'launch', header: 'Launch group', launcher: launcherCommand, items: [] }] }] }); });
+  const launcher = page.getByRole('button', { name: 'Launch group settings', exact: true });
+  assert.equal(await launcher.isDisabled(), true);
+  await page.evaluate(() => { allowed = true; launcherCommand.NotifyCanExecuteChanged(); });
+  await flush();
+  assert.equal(await launcher.isEnabled(), true);
+  await launcher.click();
+  assert.deepEqual(await page.evaluate(() => state.calls), ['launch']);
+  assert.equal(await page.evaluate(() => state.events.filter(e => e.name === 'ribbon-launcher').length), 1);
+});
+
+test('throwing onChange callbacks are captured as ribbon-error without unhandled rejection', async () => {
+  await setup(() => { makeRibbon({ items: [{ id: 'throw-change', type: 'textbox', label: 'Change callback', onChange: () => { throw new Error('Expected onChange failure'); }, command: () => state.calls.push('must not execute') }] }); });
+  await input('throw-change').fill('Changed');
+  await input('throw-change').press('Tab');
+  await flush();
+  assert.deepEqual(await page.evaluate(() => state.errors), [{ id: 'throw-change', message: 'Expected onChange failure' }]);
+  assert.deepEqual(await page.evaluate(() => state.calls), []);
+  assert.equal(await page.evaluate(() => ribbon.GetControl('throw-change').busy), false);
+});
+
+test('nested menu Back keeps its root position and returns focus to the parent trigger', async () => {
+  await setup(() => { makeRibbon({ items: [{ id: 'root-menu', type: 'menu', label: 'Root menu', items: [{ id: 'other', label: 'Other action' }, { id: 'branch', type: 'menu', label: 'Nested branch', items: [{ id: 'leaf', label: 'Nested action' }] }] }] }); });
+  await control('root-menu').click();
+  const rootBounds = await page.getByRole('menu').boundingBox();
+  await page.getByRole('menuitem', { name: 'Nested branch', exact: true }).click();
+  const nestedBounds = await page.getByRole('menu').boundingBox();
+  assert.ok(Math.abs(nestedBounds.x - rootBounds.x) <= 1);
+  assert.ok(Math.abs(nestedBounds.y - rootBounds.y) <= 1);
+  assert.equal(await page.getByRole('button', { name: 'Back to previous menu', exact: true }).isVisible(), true);
+  await page.getByRole('button', { name: 'Back to previous menu', exact: true }).click();
+  assert.equal(await page.getByRole('menuitem', { name: 'Other action', exact: true }).isVisible(), true);
+  assert.equal(await page.evaluate(() => ribbon.shadowRoot.activeElement.dataset.controlId), 'branch');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => ribbon.shadowRoot.activeElement.dataset.controlId), 'root-menu');
+});
+
+test('customization names and visibility remain drafts until Apply and Close discards them', async () => {
+  await setup();
+  await page.evaluate(() => ribbon.openCustomization());
+  await page.getByRole('textbox', { name: 'Rename Home', exact: true }).fill('Draft name');
+  await page.getByRole('checkbox', { name: 'Show Insert', exact: true }).uncheck();
+  assert.equal(await page.getByRole('tab', { name: 'Home', exact: true }).isVisible(), true);
+  assert.equal(await page.getByRole('tab', { name: 'Insert', exact: true }).isVisible(), true);
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  assert.equal(await page.getByRole('tab', { name: 'Draft name', exact: true }).count(), 0);
+  await page.evaluate(() => ribbon.openCustomization());
+  assert.equal(await page.getByRole('textbox', { name: 'Rename Home', exact: true }).inputValue(), 'Home');
+  assert.equal(await page.getByRole('checkbox', { name: 'Show Insert', exact: true }).isChecked(), true);
+  await page.getByRole('textbox', { name: 'Rename Home', exact: true }).fill('Applied name');
+  await page.getByRole('checkbox', { name: 'Show Insert', exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  assert.equal(await page.getByRole('tab', { name: 'Applied name', exact: true }).isVisible(), true);
+  assert.equal(await page.getByRole('tab', { name: 'Insert', exact: true }).count(), 0);
+});
+
+async function openExample(name = '') {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto(`${base}/examples/${name}`);
+  await page.locator('ribbon-web [role="tab"]').first().waitFor({ state: 'visible' });
+  await flush();
+}
+
+test('showcase workbook switches profile, edits cells and recalculates formulas', async () => {
+  await page.goto(`${base}/__ribbon_test__`);
+  await page.evaluate(() => localStorage.removeItem('ribbonweb-sample'));
+  await openExample();
+  await page.locator('[data-profile="excel"]').click();
+  assert.equal(await page.getByRole('tab', { name: 'Formulas', exact: true }).isVisible(), true);
+  assert.equal(await page.locator('[data-cell="B9"]').textContent(), '100000');
+  await page.locator('[data-cell="B4"]').click();
+  await page.locator('[data-cell="B4"]').fill('25000');
+  await page.locator('[data-cell="B4"]').press('Enter');
+  assert.equal(await page.locator('[data-cell="B9"]').textContent(), '101000');
+  await page.locator('[data-cell="F4"]').click();
+  await page.getByRole('textbox', { name: 'Formula or cell value', exact: true }).fill('=B4-C4');
+  await page.getByRole('textbox', { name: 'Formula or cell value', exact: true }).press('Tab');
+  assert.equal(await page.locator('[data-cell="F4"]').textContent(), '3500');
+  assert.equal(await page.evaluate(() => ribbonDemo.sheet.F4), '=B4-C4');
+  await page.locator('[data-profile="word"]').click();
+  assert.equal(await page.locator('[aria-label="Document editor"]').isVisible(), true);
+  await page.locator('[data-profile="excel"]').click();
+  assert.equal(await page.locator('[data-cell="B4"]').textContent(), '25000');
+});
+
+test('showcase presentation edits slide content and adds, duplicates and deletes slides', async () => {
+  await openExample();
+  await page.locator('[data-profile="powerpoint"]').click();
+  assert.equal(await page.locator('.slide-thumb').count(), 3);
+  await page.locator('[aria-label="Slide title"]').fill('Browser-tested title');
+  await page.locator('[aria-label="Slide subtitle"]').fill('Browser-tested subtitle');
+  await control('new-slide').click();
+  assert.equal(await page.locator('.slide-thumb').count(), 4);
+  assert.equal(await page.locator('[aria-label="Slide title"]').textContent(), 'Your next idea.');
+  await page.locator('.slide-thumb').first().click();
+  assert.equal(await page.locator('[aria-label="Slide title"]').textContent(), 'Browser-tested title');
+  assert.equal(await page.locator('[aria-label="Slide subtitle"]').textContent(), 'Browser-tested subtitle');
+  await control('duplicate-slide').click();
+  assert.equal(await page.locator('.slide-thumb').count(), 5);
+  assert.equal(await page.locator('[aria-label="Slide title"]').textContent(), 'Browser-tested title');
+  await control('delete-slide').click();
+  assert.equal(await page.locator('.slide-thumb').count(), 4);
+  assert.match(await page.locator('#doc-stats').textContent(), /of 4 slides/);
+});
+
+test('MVVM example synchronizes both views, command availability and async saving', async () => {
+  await openExample('mvvm.html');
+  assert.equal(await control('save').isDisabled(), true);
+  await page.locator('#document-title').fill('Edited in the form');
+  assert.equal(await input('title').inputValue(), 'Edited in the form');
+  assert.equal(await page.locator('#preview-title').textContent(), 'Edited in the form');
+  assert.equal(await control('save').isEnabled(), true);
+  await input('title').fill('Edited in the ribbon');
+  await input('title').press('Tab');
+  assert.equal(await page.locator('#document-title').inputValue(), 'Edited in the ribbon');
+  await control('bold').click();
+  assert.equal(await page.locator('#preview-body').evaluate(n => getComputedStyle(n).fontWeight), '700');
+  await page.locator('#editing-enabled').uncheck();
+  assert.equal(await control('bold').isDisabled(), true);
+  assert.equal(await input('title').isDisabled(), true);
+  await page.locator('#editing-enabled').check();
+  await control('save').click();
+  await page.waitForFunction(() => document.querySelector('#save-status').textContent.includes('1 snapshots'));
+  assert.equal(await control('save').isDisabled(), true);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ribbonweb-mvvm-document')).title), 'Edited in the ribbon');
+});
+
+test('MVVM example observable command additions stay reactive and can be removed', async () => {
+  await openExample('mvvm.html');
+  await page.locator('#add-tool').click();
+  await control('tool-1').click();
+  assert.equal(await control('tool-1').textContent(), 'Tool 1 · 1');
+  await control('tool-1').click();
+  assert.equal(await control('tool-1').textContent(), 'Tool 1 · 2');
+  await page.locator('#remove-tool').click();
+  assert.equal(await control('tool-1').count(), 0);
+  assert.equal(await page.locator('#remove-tool').isDisabled(), true);
+});
+
+test('RibbonX example boot, callbacks, dynamic menu and tab activation work', async () => {
+  await openExample('ribbonx.html');
+  assert.equal(await page.locator('#error').textContent(), '');
+  assert.match(await page.locator('#status').textContent(), /imported successfully/);
+  await control('bold').click();
+  assert.equal(await page.locator('#preview').evaluate(n => getComputedStyle(n).fontWeight), '700');
+  await input('font').selectOption('serif');
+  assert.match(await page.locator('#preview').evaluate(n => getComputedStyle(n).fontFamily), /Georgia/);
+  await input('title').fill('Title through XML callback');
+  await input('title').press('Tab');
+  assert.equal(await page.locator('#preview-title').textContent(), 'Title through XML callback');
+  await page.locator('#enabled').uncheck();
+  assert.equal(await control('bold').isDisabled(), true);
+  await page.locator('#enabled').check();
+  await page.locator('#add-recent').click();
+  await control('recent').click();
+  await page.getByRole('menuitem', { name: 'Draft 3', exact: true }).click();
+  assert.equal(await page.locator('#preview-title').textContent(), 'Draft 3');
+  assert.equal(await input('title').inputValue(), 'Draft 3');
+  await page.locator('#view-tab').click();
+  assert.equal(await control('refresh-state').isVisible(), true);
+});
+
+test('RibbonX example reports malformed XML and restores a working ribbon', async () => {
+  await openExample('ribbonx.html');
+  await page.locator('#xml').fill('<customUI><ribbon>');
+  await page.locator('#apply').click();
+  assert.notEqual(await page.locator('#error').textContent(), '');
+  assert.equal(await page.getByRole('tab', { name: 'Home', exact: true }).isVisible(), true);
+  await page.locator('#restore').click();
+  assert.equal(await page.locator('#error').textContent(), '');
+  await control('bold').click();
+  assert.equal(await page.locator('#preview').evaluate(n => getComputedStyle(n).fontWeight), '700');
+});
+
 test('RibbonX browser parser and callback conformance suite', async () => {
   await setup();
   const results = await page.evaluate(async () => (await import('/tests/ribbonx.browser.js')).runRibbonXTests());
@@ -473,7 +786,7 @@ test('showcase loads without page errors and captures desktop/mobile screenshots
 
 const results = [];
 try {
-  for (const { name, run } of cases) {
+  for (const { name, run } of cases.filter(testCase => !process.env.RIBBON_TEST_FILTER || testCase.name.includes(process.env.RIBBON_TEST_FILTER))) {
     pageErrors = [];
     const started = performance.now();
     try {
@@ -494,6 +807,7 @@ try {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
 }
+if (results.length === 0) throw new Error('No browser test matched RIBBON_TEST_FILTER');
 const failures = results.filter(r => !r.passed);
 console.log(`Browser regressions: ${results.length - failures.length}/${results.length} groups passed.`);
 if (failures.length) process.exitCode = 1;
