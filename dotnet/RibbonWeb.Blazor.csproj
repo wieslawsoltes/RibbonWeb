@@ -6,7 +6,7 @@
     <RootNamespace>RibbonWeb.Blazor</RootNamespace>
     <AssemblyName>RibbonWeb.Blazor</AssemblyName>
     <PackageId>RibbonWeb.Blazor</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>RibbonWeb contributors</Authors>
     <Description>A Blazor component and .NET command bridge for the standalone RibbonWeb web component.</Description>
     <PackageTags>blazor;ribbon;web-components;mvvm;ICommand</PackageTags>

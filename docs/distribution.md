@@ -39,10 +39,10 @@ ZIP generation uses fixed timestamps, deterministic ordering and Node's built-in
 Install a release tarball without a registry:
 
 ```sh
-npm install ./wieslawsoltes-ribbon-web-0.1.0.tgz
+npm install ./wieslawsoltes-ribbon-web-0.1.1.tgz
 ```
 
-After the maintainer has published to npm, consumers can install:
+Install the public npm package:
 
 ```sh
 npm install @wieslawsoltes/ribbon-web
@@ -96,11 +96,11 @@ The intended showcase address is `https://wieslawsoltes.github.io/RibbonWeb/`. A
 
 The release validator rejects a tag or input that does not match both `package.json` and `package-lock.json`. The release job runs syntax checks, Node tests and Chromium tests, builds distribution archives, and uploads them to a GitHub release. Prerelease versions such as `0.2.0-beta.1` produce prereleases and use the `next` npm distribution tag. Stable versions use `latest`.
 
-Repeated workflow runs replace GitHub release attachments for the same release. Registry versions are immutable: if a registry step has already published successfully, remove/disable that registry's publish option before rerunning solely to recover a later failure, or use a new package version. Do not attempt to republish a changed package under an existing version.
+Release attachments are retained unchanged on retries. The reusable **Publish npm registry** workflow downloads the existing release tarball, verifies its SHA-256 checksum and exact tag commit, and tests installed consumers before publication. If the version already exists on npm, its SHA-512 integrity must match the release; matching versions skip publication and continue verification. A byte mismatch fails without modifying the version. Rerun the failed npm job, or manually run **Publish npm registry** with the existing release tag, to recover a transient registry failure.
 
 ## npm publishing
 
-The release job publishes to npm only when a repository secret named `NPM_TOKEN` is configured. Use a token authorized for the `@wieslawsoltes` scope and package. Keep credentials in GitHub Actions secrets. The workflow passes the token via `NODE_AUTH_TOKEN` and requests provenance using GitHub's OIDC support.
+The release workflow invokes `.github/workflows/npm-publish.yml` after the release artifacts are available. Configure the repository secret `NPM_TOKEN`, or npm trusted publishing, for authentication. Use a token authorized for the `@wieslawsoltes` scope and package. Keep credentials in GitHub Actions secrets. The workflow passes the token via `NODE_AUTH_TOKEN` and requests provenance using GitHub's OIDC support.
 
 A registry may require its account, scope, token and organization policy to be configured before first publication. Review the registry's current publishing requirements. The workflow uploads the already tested tarball, rather than rebuilding it during publication.
 
@@ -109,10 +109,10 @@ To publish manually after validation:
 ```sh
 npm run release:pack
 npm login
-npm publish artifacts/wieslawsoltes-ribbon-web-0.1.0.tgz --access public
+npm publish artifacts/wieslawsoltes-ribbon-web-0.1.1.tgz --access public
 ```
 
-The project has no committed authentication tokens or `.npmrc` credentials. Until registry publication succeeds, use the GitHub release tarball or browser ZIP.
+Verification uses anonymous registry requests and checks the version, distribution tag, package index, provenance metadata, and downloaded tarball integrity. It reruns the installed-consumer suite against the downloaded package and performs a fresh `npm install` by package name. Registry propagation is retried for up to five minutes. Credentials remain in GitHub Actions secrets.
 
 ## GitHub Packages
 
@@ -133,6 +133,6 @@ The CI matrix exercises Node.js 22 and 24. Browser tests install a pinned Playwr
 
 ## Release manifest trigger
 
-The release workflow also runs when `release.json` changes on `main`. Commit `{ "version": "0.1.0" }` with the matching package and lockfile versions to publish that exact commit after the workflow checks. This is useful when your GitHub integration can commit files but cannot dispatch workflows or push tags. The workflow creates the version tag only after checks and package builds pass. Tags already pointing to another commit are rejected; bump the version for a new release.
+The release workflow also runs when `release.json` changes on `main`. Commit `{ "version": "0.1.1" }` with the matching package and lockfile versions to publish that exact commit after the workflow checks. This is useful when your GitHub integration can commit files but cannot dispatch workflows or push tags. The workflow creates the version tag only after checks and package builds pass. Tags already pointing to another commit are rejected; bump the version for a new release.
 
 The release includes a built `RibbonWeb.Blazor` NuGet package and symbols. Set `NUGET_API_KEY` to enable NuGet.org publishing; without it, the `.nupkg` is still available as a GitHub release asset. NuGet.org publication is separate from building the package.
