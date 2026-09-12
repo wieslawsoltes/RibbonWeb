@@ -1,6 +1,6 @@
 {
   "name": "@wieslawsoltes/ribbon-web",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Standalone ribbon Web Component with .NET-style commands, observable models, MVVM binding and RibbonX import.",
   "type": "module",
   "main": "./dist/index.js",
@@ -59,7 +59,8 @@
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --lib ES2022,DOM tests/types.test.ts",
     "format": "prettier --write src examples scripts tests docs *.md *.json .github/workflows",
-    "format:check": "prettier --check src examples scripts tests docs *.md *.json .github/workflows"
+    "format:check": "prettier --check src examples scripts tests docs *.md *.json .github/workflows",
+    "test:package": "node scripts/package-test.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -86,7 +87,8 @@
     "accessible"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
     "playwright": "1.55.0",

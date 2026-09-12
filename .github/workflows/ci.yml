@@ -25,7 +25,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
-      - run: npm pack --dry-run --ignore-scripts
+      - run: npm run test:package
   browser:
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +37,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: npm run build
+      - run: node scripts/package-test.mjs --browser
       - run: npm run build:site
       - uses: actions/upload-artifact@v4
         with:

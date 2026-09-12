@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-09-12
+
+- Publish the existing `@wieslawsoltes/ribbon-web` package to npm with provenance after release validation.
+- Verify SHA-256 release checksums, immutable SHA-512 npm integrity, distribution tags, public package indexing and provenance, and fresh anonymous package installation.
+- Test the actual installed tarball: public ESM subpaths, shared core class identity, MVVM bindings and commands, strict TypeScript declarations, and browser Shadow DOM styles and interactions.
+- Preserve existing release attachments during retries; separate reusable npm recovery from archive creation.
+- Add CI, release/npm, version, downloads, license and demo badges and simplify installation instructions.
+- Align the Blazor package and release manifest at 0.1.1.
+
 ## 0.1.0 — 2026-09-11
 
 Initial public release of RibbonWeb, a standalone native-ESM ribbon component for browser applications and .NET application ports.

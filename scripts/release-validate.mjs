@@ -39,7 +39,7 @@ if (tagCommit.status === 0 && tagCommit.stdout.trim()) {
 if (process.env.GITHUB_OUTPUT)
   await appendFile(
     process.env.GITHUB_OUTPUT,
-    `version=${version}\ntag=v${version}\nprerelease=${version.includes('-')}\n`,
+    `version=${version}\ntag=v${version}\nprerelease=${version.includes('-')}\ndist_tag=${version.includes('-') ? 'next' : 'latest'}\n`,
   );
 console.log(
   `Validated ${pkg.name}@${version} from ${fileURLToPath(new URL('../', import.meta.url))}`,

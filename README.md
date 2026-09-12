@@ -1,5 +1,13 @@
 # RibbonWeb
 
+[![CI](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/ci.yml)
+[![Release and npm](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/release.yml)
+[![npm version](https://img.shields.io/npm/v/@wieslawsoltes/ribbon-web)](https://www.npmjs.com/package/@wieslawsoltes/ribbon-web)
+[![npm downloads](https://img.shields.io/npm/dm/@wieslawsoltes/ribbon-web)](https://www.npmjs.com/package/@wieslawsoltes/ribbon-web)
+[![GitHub release](https://img.shields.io/github/v/release/wieslawsoltes/RibbonWeb)](https://github.com/wieslawsoltes/RibbonWeb/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/wieslawsoltes/RibbonWeb)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-GitHub%20Pages-2563eb)](https://wieslawsoltes.github.io/RibbonWeb/)
+
 A standalone ribbon Web Component for browser applications and .NET application ports. Native JavaScript modules, zero runtime dependencies, TypeScript declarations, observable models, and familiar `ICommand` / MVVM patterns.
 
 [Interactive workspace](https://wieslawsoltes.github.io/RibbonWeb/examples/) · [MVVM example](https://wieslawsoltes.github.io/RibbonWeb/examples/mvvm.html) · [RibbonX example](https://wieslawsoltes.github.io/RibbonWeb/examples/ribbonx.html) · [Releases](https://github.com/wieslawsoltes/RibbonWeb/releases) · [API reference](docs/api.md) · [Compatibility](docs/compatibility.md)
@@ -12,7 +20,7 @@ A standalone ribbon Web Component for browser applications and .NET application 
 - **Personalization:** tab/group visibility, order and tab labels; quick-access commands; JSON import/export and optional browser persistence.
 - **MVVM:** `ObservableObject`, `ObservableCollection`, `RelayCommand`, cancellable `AsyncRelayCommand`, `CanExecuteChanged`, nested one-way/two-way bindings, converters, collection updates, and disposable subscriptions.
 - **Interop:** a documented RibbonX subset with registered callbacks and invalidation; a Blazor bridge and wrapper; native Web Component integration with standard frameworks.
-- **Distribution:** ESM package, declarations, npm tarball, browser and source ZIPs, checksums, CI, GitHub Pages deployment, GitHub releases, and optional npm / GitHub Packages publishing.
+- **Distribution:** ESM package, declarations, npm tarball, browser and source ZIPs, checksums, CI, GitHub Pages deployment, GitHub releases, verified npm publishing with provenance, and optional GitHub Packages publishing.
 
 RibbonWeb is an independent implementation of ribbon interaction patterns. It is **not a drop-in implementation of every WPF, Office RibbonX, or Office.js API**, and does not provide the Word, Excel, or PowerPoint document engines. The [capability matrix](docs/compatibility.md) describes implemented surfaces, translations, and remaining boundaries. No Microsoft runtime or proprietary assets are bundled.
 
@@ -29,13 +37,15 @@ Open the address printed by the server. The component itself can run without npm
 
 ## Install a release
 
-Download the `.tgz` or browser ZIP from [GitHub Releases](https://github.com/wieslawsoltes/RibbonWeb/releases). The tarball is an installable npm package:
+Install the package from npm:
 
 ```sh
-npm install ./wieslawsoltes-ribbon-web-0.1.0.tgz
+npm install @wieslawsoltes/ribbon-web
 ```
 
-Registry publishing is configured but depends on repository credentials. Only use `npm install @wieslawsoltes/ribbon-web` after confirming that the package has been published to the chosen registry. Browser ZIP users should keep all modules together; the package is modular ESM, not a single global script.
+For a pinned release, use `npm install @wieslawsoltes/ribbon-web@0.1.1`. The package has no runtime dependencies and includes its Shadow DOM styles.
+
+The npm tarball, browser ZIP, complete source ZIP, Blazor packages, and SHA-256 checksums are also available from [GitHub Releases](https://github.com/wieslawsoltes/RibbonWeb/releases). Browser ZIP users should keep all neighboring modules together; the distribution uses native ESM.
 
 ## Ordinary web application
 
@@ -180,6 +190,7 @@ The sample editors are compact hosts for exercising ribbon commands. Their HTML/
 ```sh
 npm run check          # syntax and strict public type checks
 npm test               # observable, command, binding, bridge and packaging tests
+npm run test:package   # build first; installed tarball, exports, MVVM and types
 npx playwright install chromium
 npm run test:browser   # real Chromium interactions, screenshots and JSON report
 npm run build          # dist/ modules and declarations

@@ -19,10 +19,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   release:
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      dist_tag: ${{ steps.version.outputs.dist_tag }}
     runs-on: ubuntu-latest
     env:
       RELEASE_VERSION: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +41,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: npm run release:pack
+      - name: Verify installable distribution and browser assets
+        run: node scripts/package-test.mjs --tarball artifacts/wieslawsoltes-ribbon-web-$(node -p 'require("./package.json").version').tgz --browser
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -57,25 +61,10 @@ jobs:
           flags=()
           if [ "$IS_PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" artifacts/* --clobber
+            echo "Release already exists; immutable attachments retained."
           else
             gh release create "$RELEASE_TAG" artifacts/* --target "$GITHUB_SHA" --title "RibbonWeb $RELEASE_TAG" --notes-file CHANGELOG.md "${flags[@]}"
           fi
-      - name: Configure npm registry
-        if: env.NPM_TOKEN != ''
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-      - name: Publish to npm when NPM_TOKEN is configured
-        if: env.NPM_TOKEN != ''
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          IS_PRERELEASE: ${{ steps.version.outputs.prerelease }}
-        run: |
-          tag=latest
-          if [ "$IS_PRERELEASE" = "true" ]; then tag=next; fi
-          npm publish artifacts/*.tgz --access public --provenance --tag "$tag"
       - name: Configure GitHub Packages registry
         if: vars.PUBLISH_GITHUB_PACKAGES == 'true'
         uses: actions/setup-node@v4
@@ -91,7 +80,12 @@ jobs:
         run: |
           tag=latest
           if [ "$IS_PRERELEASE" = "true" ]; then tag=next; fi
-          npm publish artifacts/*.tgz --registry https://npm.pkg.github.com --tag "$tag"
+          package_version=$(node -p 'require("./package.json").version')
+          if npm view "@wieslawsoltes/ribbon-web@$package_version" version --registry https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "GitHub package version already published."
+          else
+            npm publish artifacts/*.tgz --registry https://npm.pkg.github.com --provenance=false --ignore-scripts --tag "$tag"
+          fi
       - name: Publish Blazor package when configured
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
@@ -104,12 +98,24 @@ jobs:
       - name: Record distribution results
         env:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
-          NPM_ENABLED: ${{ env.NPM_TOKEN != '' }}
           GH_PACKAGES_ENABLED: ${{ vars.PUBLISH_GITHUB_PACKAGES == 'true' }}
         run: |
           {
             echo "Release: $RELEASE_TAG"
             echo "GitHub release archives: published"
-            echo "npm publishing enabled: $NPM_ENABLED"
+            echo "npm publication and verification: reusable Publish npm registry workflow"
             echo "GitHub Packages publishing enabled: $GH_PACKAGES_ENABLED"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  npm:
+    needs: release
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/npm-publish.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+      expected_sha: ${{ github.sha }}
+      dist_tag: ${{ needs.release.outputs.dist_tag }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
