@@ -84,7 +84,7 @@ jobs:
           if npm view "@wieslawsoltes/ribbon-web@$package_version" version --registry https://npm.pkg.github.com >/dev/null 2>&1; then
             echo "GitHub package version already published."
           else
-            npm publish artifacts/*.tgz --registry https://npm.pkg.github.com --provenance=false --ignore-scripts --tag "$tag"
+            npm publish ./artifacts/*.tgz --registry https://npm.pkg.github.com --provenance=false --ignore-scripts --tag "$tag"
           fi
       - name: Publish Blazor package when configured
         env:
