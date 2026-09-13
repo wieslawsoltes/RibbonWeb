@@ -1,0 +1,54 @@
+@page "/"
+@namespace RibbonWeb.Blazor.Sample
+@using global::RibbonWeb.Blazor
+@using global::RibbonWeb
+@using System.Windows.Input
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+<main>
+    <h1>RibbonWeb + Blazor</h1>
+    <p>The packaged native ribbon, typed definitions, complete model interop and the compatible ICommand component.</p>
+    <button id="action" @onclick="Exercise" disabled="@(!_ready)">Change tabs and update a native control</button>
+    <button @onclick="ToggleTheme">Switch theme</button>
+    <button id="toggle" @onclick="Toggle">@(_show ? "Unmount" : "Mount")</button>
+    @if (_show) {
+        <h2>Native-engine component</h2>
+        <RibbonControl @ref="_ribbon" Model="_model" Theme="_theme" Ready="NativeReady" Style="display:block;min-height:180px" />
+        <h2>Compatible ICommand component</h2>
+        <RibbonWeb @ref="_legacy" Model="_model" Commands="_commands" Ready="LegacyReady" SelectedTabChanged="TabChanged" theme="light" />
+    }
+    <p>ICommand executions: @_executions</p>
+    <output id="status">@_status</output><output id="result">@_result</output>
+</main>
+@code {
+    private readonly RibbonDefinition _model = new() { Tabs = [
+        new() { Id = "home", Header = "Home", Groups = [new() { Id = "file", Header = "File", Items = [new() { Id = "save", Label = "Save", KeyTip = "S", Size = "large" }, new() { Id = "bold", Type = "toggle", Label = "Bold" }, new() { Id = "size", Type = "combobox", Label = "Size", Value = "12", Items = ["10", "12", "16", "24"] }] }] },
+        new() { Id = "insert", Header = "Insert", Groups = [new() { Id = "objects", Header = "Objects", Items = [new() { Id = "table", Label = "Table" }, new() { Id = "color", Type = "color", Label = "Color", Value = "#4675c0" }] }] }
+    ] };
+    private RibbonControl _ribbon = default!;
+    private global::RibbonWeb.Blazor.RibbonWeb _legacy = default!;
+    private Dictionary<string, ICommand> _commands = new();
+    private TaskCompletionSource<string>? _tab;
+    private bool _show = true, _nativeReady, _legacyReady, _ready;
+    private int _executions;
+    private string _theme = "light", _status = "Loading", _result = "";
+    protected override void OnInitialized() => _commands["save"] = new SaveCommand(() => { _executions++; _ = InvokeAsync(StateHasChanged); });
+    private void NativeReady(IJSObjectReference _) { _nativeReady = true; CheckReady(); }
+    private void LegacyReady() { _legacyReady = true; CheckReady(); }
+    private void CheckReady() { _ready = _nativeReady && _legacyReady; if (_ready) _status = "Ready"; }
+    private void TabChanged(RibbonEventArgs args) => _tab?.TrySetResult(args.Id);
+    private async Task Exercise()
+    {
+        _tab = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await _legacy.SelectTabAsync("insert");
+        if (await _tab.Task.WaitAsync(TimeSpan.FromSeconds(15)) != "insert") throw new InvalidOperationException("Compatible .NET event forwarding failed.");
+        if (!await _ribbon.SelectTabAsync("insert")) throw new InvalidOperationException("Native tab selection failed.");
+        await _ribbon.UpdateControlAsync("save", new { label = "Saved" });
+        await using var save = await _ribbon.GetControlAsync("save");
+        if (await _ribbon.Module!.GetAsync<string>(save, "label") != "Saved") throw new InvalidOperationException("Native control update failed.");
+        _result = "Passed";
+    }
+    private void ToggleTheme() => _theme = _theme == "light" ? "dark" : "light";
+    private void Toggle() { _show = !_show; _ready = _nativeReady = _legacyReady = false; _status = _show ? "Loading" : "Unmounted"; _result = ""; }
+    private sealed class SaveCommand(Action execute) : ICommand { public bool CanExecute(object? value) => true; public void Execute(object? value) => execute(); public event EventHandler? CanExecuteChanged { add { } remove { } } }
+}

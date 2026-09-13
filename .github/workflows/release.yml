@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -45,12 +46,14 @@ jobs:
         run: node scripts/package-test.mjs --tarball artifacts/wieslawsoltes-ribbon-web-$(node -p 'require("./package.json").version').tgz --browser
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
-      - name: Build and pack Blazor library
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Build and attach the independently versioned Blazor library
         run: |
-          dotnet restore dotnet/RibbonWeb.Blazor.csproj
-          dotnet build dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-restore
-          dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release --no-build --no-restore -p:PackageOutputPath="$PWD/artifacts"
+          npm run build
+          node blazor/build.mjs
+          dotnet pack dotnet/RibbonWeb.Blazor.csproj --configuration Release -o "$PWD/artifacts"
           node scripts/checksums.mjs
       - name: Publish GitHub release and attach archives
         env:
@@ -86,15 +89,6 @@ jobs:
           else
             npm publish ./artifacts/*.tgz --registry https://npm.pkg.github.com --provenance=false --ignore-scripts --tag "$tag"
           fi
-      - name: Publish Blazor package when configured
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          if [ -n "$NUGET_API_KEY" ]; then
-            dotnet nuget push 'artifacts/*.nupkg' --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
-          else
-            echo "NuGet.org publishing skipped: NUGET_API_KEY is not configured."
-          fi
       - name: Record distribution results
         env:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
@@ -105,8 +99,8 @@ jobs:
             echo "GitHub release archives: published"
             echo "npm publication and verification: reusable Publish npm registry workflow"
             echo "GitHub Packages publishing enabled: $GH_PACKAGES_ENABLED"
+            echo "NuGet publication: independently validated Blazor workflow and blazor-v* release"
           } >> "$GITHUB_STEP_SUMMARY"
-
   npm:
     needs: release
     permissions:
