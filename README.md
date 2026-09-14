@@ -4,7 +4,7 @@ Reusable ribbon Web Component and Blazor library with commands, observable model
 
 [![npm](https://img.shields.io/npm/v/%40wieslawsoltes%2Fribbon-web)](https://www.npmjs.com/package/@wieslawsoltes/ribbon-web)
 [![npm downloads](https://img.shields.io/npm/dm/%40wieslawsoltes%2Fribbon-web)](https://www.npmjs.com/package/@wieslawsoltes/ribbon-web)
-[![NuGet](https://img.shields.io/nuget/v/RibbonWeb.Blazor)](https://www.nuget.org/packages/RibbonWeb.Blazor)
+[![RibbonWeb.Blazor on NuGet](https://img.shields.io/nuget/v/RibbonWeb.Blazor?label=RibbonWeb.Blazor&logo=nuget)](https://www.nuget.org/packages/RibbonWeb.Blazor)
 [![NuGet downloads](https://img.shields.io/nuget/dt/RibbonWeb.Blazor)](https://www.nuget.org/packages/RibbonWeb.Blazor)
 [![Blazor CI](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/blazor.yml/badge.svg)](https://github.com/wieslawsoltes/RibbonWeb/actions/workflows/blazor.yml)
 
