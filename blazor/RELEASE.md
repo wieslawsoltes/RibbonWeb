@@ -1,11 +1,7 @@
-# RibbonWeb.Blazor 0.2.1
+# RibbonWeb.Blazor 0.2.2
 
-Updates the pinned interop runtime to the tested Dockyard revision `1c895b7184451071e1c7131063249d2d9eb145b9`, with no Dockyard runtime dependency.
+Adopts shared runtime c833be49d472583b6f56225862e0aa7d201c1da7, validated and merged through Dockyard PR #5. Fixes concurrent visual disposal, late Razor module imports and root creation, queued callbacks after removal, and repeated cleanup failures. Adds lifecycle state, awaitable factory teardown and coalesced template updates.
 
-- Preserve cyclic/deep native argument graphs and shared callback identity without mutating inputs.
-- Await concurrent native/module/subscription cleanup and asynchronous unsubscribe, continuing teardown after individual failures.
-- Preserve property, method and disposal access through callable handles.
-- Honor initialization-wait cancellation independently for each caller; prevent late native construction after disposal.
-- Add complete streamed callable results through `CallFunctionJsonAsync<T>` and expanded JavaScript/managed regressions.
+Preserves RibbonControl, typed definitions, real Razor custom controls and the compatible RibbonWeb/ICommand APIs and asset paths. The canonical project remains dotnet/RibbonWeb.Blazor.csproj. Both READMEs identify the new version.
 
-The compatible RibbonWeb component, RibbonWebInterop, ICommand integration, typed RibbonControl, real Razor custom controls and original static asset paths are preserved. Both .NET 8/.NET 10 WebAssembly and Interactive Server package consumers must pass validation before publication. Public NuGet payloads are verified before release creation.
+.NET 8/.NET 10 actual-package WebAssembly/Interactive Server tests include template movement/update/recreation, managed disposal races, native interactions and compatible event forwarding. Eight new shared JavaScript lifecycle cases accompany existing checks. Publication validates public NuGet bytes before creating packages, symbols and runnable-sample releases. Native callback and engine compatibility boundaries remain unchanged.
