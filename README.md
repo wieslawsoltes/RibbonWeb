@@ -19,7 +19,7 @@ The [complete JavaScript guide](README.web.md) retains API examples, compatibili
 ## Blazor
 
 ```sh
-dotnet add package RibbonWeb.Blazor --version 0.2.1
+dotnet add package RibbonWeb.Blazor --version 0.2.2
 ```
 
 Targets .NET 8 and .NET 10; supports interactive WebAssembly and Server with packaged static web assets and no consumer npm/CDN dependency. `RibbonControl` exposes typed ribbon/tab/group/item definitions, native callbacks and Razor custom controls. The existing `RibbonWeb` component, `RibbonWebInterop`, `ICommand` integration and original asset paths remain available.
