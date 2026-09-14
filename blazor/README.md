@@ -1,6 +1,6 @@
 # RibbonWeb.Blazor
 
-Install `RibbonWeb.Blazor` version `0.2.0`. The .NET 8/.NET 10 package contains the real ribbon JavaScript engine as local static web assets, for interactive WebAssembly and Server.
+Install `RibbonWeb.Blazor` version `0.2.1`. The .NET 8/.NET 10 package contains the real ribbon JavaScript engine as local static web assets, for interactive WebAssembly and Server.
 
 ## Native and compatible components
 

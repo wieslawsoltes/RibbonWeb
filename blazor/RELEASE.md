@@ -1,10 +1,11 @@
-# RibbonWeb.Blazor 0.2.0
+# RibbonWeb.Blazor 0.2.1
 
-- Extend the canonical package to .NET 8/.NET 10 while preserving the existing RibbonWeb component, ICommand and original asset paths.
-- Add typed definitions, native RibbonControl, Razor custom render factories and native function handles.
-- Correct Server sample namespace resolution; qualify native Razor callbacks and compatible .NET event forwarding.
-- Add streamed data/binary interop, explicit literal payloads, async lifecycle cleanup and scoped template roots.
-- Package-restored WebAssembly/Server samples, root documentation, independent NuGet publication and public-payload verification.
-- Update the Node browser-test runner from vulnerable Playwright 1.55.0 to the locked 1.63.0 version used by sibling projects.
+Updates the pinned interop runtime to the tested Dockyard revision `1c895b7184451071e1c7131063249d2d9eb145b9`, with no Dockyard runtime dependency.
 
-Native compatibility boundaries remain applicable. Typed convenience APIs are complemented by generic native interop; synchronous native callbacks execute in the browser. Independent Razor roots do not automatically inherit outer cascading values.
+- Preserve cyclic/deep native argument graphs and shared callback identity without mutating inputs.
+- Await concurrent native/module/subscription cleanup and asynchronous unsubscribe, continuing teardown after individual failures.
+- Preserve property, method and disposal access through callable handles.
+- Honor initialization-wait cancellation independently for each caller; prevent late native construction after disposal.
+- Add complete streamed callable results through `CallFunctionJsonAsync<T>` and expanded JavaScript/managed regressions.
+
+The compatible RibbonWeb component, RibbonWebInterop, ICommand integration, typed RibbonControl, real Razor custom controls and original static asset paths are preserved. Both .NET 8/.NET 10 WebAssembly and Interactive Server package consumers must pass validation before publication. Public NuGet payloads are verified before release creation.
