@@ -45,6 +45,8 @@ public sealed class RibbonItemDefinition : RibbonOptions
     public object? Command { get; set; }
     public object? CommandParameter { get; set; }
     public object? Bindings { get; set; }
+    public object? Render { get; set; }
+    public string? Slot { get; set; }
     public List<object> Items { get; set; } = [];
 }
 /// <summary>Native ribbon control with complete engine access. The existing RibbonWeb component retains ICommand compatibility.</summary>

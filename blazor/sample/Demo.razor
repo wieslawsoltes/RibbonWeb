@@ -1,11 +1,14 @@
 @page "/"
-@namespace RibbonWeb.Blazor.Sample
-@using global::RibbonWeb.Blazor
-@using global::RibbonWeb
+@namespace RibbonWebBlazorSample
+@using RibbonWeb.Blazor
 @using System.Windows.Input
 @using Microsoft.AspNetCore.Components
 @using Microsoft.JSInterop
-<main>
+<main data-native-template-test="true">
+    <BrowserTemplate TItem="System.Text.Json.JsonElement" Id="@_templateId" Context="item">
+        <button class="native-template-check" @onclick='() => _templateResult = "Passed"'>@item.GetProperty("label").GetString()</button>
+    </BrowserTemplate>
+    <output id="native-template-result">@_templateResult</output>
     <h1>RibbonWeb + Blazor</h1>
     <p>The packaged native ribbon, typed definitions, complete model interop and the compatible ICommand component.</p>
     <button id="action" @onclick="Exercise" disabled="@(!_ready)">Change tabs and update a native control</button>
@@ -19,8 +22,11 @@
     }
     <p>ICommand executions: @_executions</p>
     <output id="status">@_status</output><output id="result">@_result</output>
+    <InteropProbe />
 </main>
 @code {
+    private readonly string _templateId = Guid.NewGuid().ToString("N");
+    private string _templateResult = "Waiting";
     private readonly RibbonDefinition _model = new() { Tabs = [
         new() { Id = "home", Header = "Home", Groups = [new() { Id = "file", Header = "File", Items = [new() { Id = "save", Label = "Save", KeyTip = "S", Size = "large" }, new() { Id = "bold", Type = "toggle", Label = "Bold" }, new() { Id = "size", Type = "combobox", Label = "Size", Value = "12", Items = ["10", "12", "16", "24"] }] }] },
         new() { Id = "insert", Header = "Insert", Groups = [new() { Id = "objects", Header = "Objects", Items = [new() { Id = "table", Label = "Table" }, new() { Id = "color", Type = "color", Label = "Color", Value = "#4675c0" }] }] }
@@ -32,7 +38,11 @@
     private bool _show = true, _nativeReady, _legacyReady, _ready;
     private int _executions;
     private string _theme = "light", _status = "Loading", _result = "";
-    protected override void OnInitialized() => _commands["save"] = new SaveCommand(() => { _executions++; _ = InvokeAsync(StateHasChanged); });
+    protected override void OnInitialized()
+    {
+        _commands["save"] = new SaveCommand(() => { _executions++; _ = InvokeAsync(StateHasChanged); });
+        _model.Tabs[0].Groups[0].Items.Add(new() { Id = "razor", Type = "custom", Label = "Razor command", Render = BrowserFunction.RazorTemplate(_templateId, contextProperty: "control", fields: ["id", "label"]) });
+    }
     private void NativeReady(IJSObjectReference _) { _nativeReady = true; CheckReady(); }
     private void LegacyReady() { _legacyReady = true; CheckReady(); }
     private void CheckReady() { _ready = _nativeReady && _legacyReady; if (_ready) _status = "Ready"; }
